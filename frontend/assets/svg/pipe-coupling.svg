@@ -1,0 +1,11 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 64 24">
+  <symbol id="pipe-coupling" viewBox="0 0 64 24">
+    <line x1="0" y1="12" x2="64" y2="12" stroke="currentColor" stroke-width="4"/>
+    <rect x="24" y="4" width="16" height="16" rx="2" fill="#b8863b" stroke="#1f1d1a" stroke-width="1.5"/>
+    <circle cx="27" cy="7" r="1.2" fill="#1f1d1a"/>
+    <circle cx="37" cy="7" r="1.2" fill="#1f1d1a"/>
+    <circle cx="27" cy="17" r="1.2" fill="#1f1d1a"/>
+    <circle cx="37" cy="17" r="1.2" fill="#1f1d1a"/>
+  </symbol>
+</svg>

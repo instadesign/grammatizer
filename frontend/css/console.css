@@ -1,0 +1,607 @@
+/* Engine-connect + Console screens — the "daylight" parchment-and-brass register.
+   (The ignition/boot screen is dark and lives in ignition.css.) */
+
+/* ---- Shared form primitives -------------------------------------------- */
+
+.field {
+  display: block;
+  margin-bottom: var(--space-4);
+}
+
+.field-label {
+  display: flex;
+  justify-content: space-between;
+  gap: var(--space-2);
+  font-family: var(--font-mechanical);
+  font-size: var(--text-xs);
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+  color: var(--text-secondary);
+  margin-bottom: var(--space-2);
+}
+
+.field-optional {
+  text-transform: none;
+  letter-spacing: normal;
+  opacity: 0.7;
+}
+
+.field-hint {
+  display: block;
+  margin-top: var(--space-2);
+  font-size: var(--text-xs);
+  color: var(--text-secondary);
+}
+
+.field-standalone-hint {
+  margin: calc(-1 * var(--space-2)) 0 var(--space-4);
+}
+
+.field select,
+.field input[type="text"],
+.field input[type="password"] {
+  width: 100%;
+  padding: var(--space-3);
+  min-height: 44px;
+  background: var(--bg-panel);
+  border: var(--border-hairline);
+  border-radius: var(--radius-rivet);
+  color: var(--text-primary);
+  box-shadow: var(--shadow-inset);
+}
+
+.field select {
+  appearance: none;
+  background-image: linear-gradient(45deg, transparent 50%, var(--color-iron) 50%),
+                     linear-gradient(135deg, var(--color-iron) 50%, transparent 50%);
+  background-position: calc(100% - 18px) center, calc(100% - 12px) center;
+  background-size: 6px 6px, 6px 6px;
+  background-repeat: no-repeat;
+}
+
+/* ---- Range inputs — styled as brass dials, shared across screens ------- */
+
+input[type="range"] {
+  -webkit-appearance: none;
+  appearance: none;
+  width: 100%;
+  height: 28px;
+  background: transparent;
+  min-height: 44px;
+  padding-block: 8px;
+}
+
+input[type="range"]::-webkit-slider-runnable-track {
+  height: 6px;
+  background: var(--color-iron);
+  border-radius: 3px;
+  box-shadow: var(--shadow-inset);
+}
+input[type="range"]::-moz-range-track {
+  height: 6px;
+  background: var(--color-iron);
+  border-radius: 3px;
+}
+input[type="range"]::-webkit-slider-thumb {
+  -webkit-appearance: none;
+  width: 22px;
+  height: 22px;
+  margin-top: -8px;
+  border-radius: 50%;
+  background: radial-gradient(circle at 35% 30%, var(--color-brass-light), var(--color-brass-dark));
+  border: 2px solid var(--color-iron);
+  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.4);
+  cursor: grab;
+}
+input[type="range"]::-moz-range-thumb {
+  width: 22px;
+  height: 22px;
+  border-radius: 50%;
+  background: radial-gradient(circle at 35% 30%, var(--color-brass-light), var(--color-brass-dark));
+  border: 2px solid var(--color-iron);
+  cursor: grab;
+}
+input[type="range"]:disabled::-webkit-slider-thumb {
+  background: var(--color-slate-light);
+  cursor: not-allowed;
+}
+input[type="range"]:focus-visible::-webkit-slider-thumb {
+  outline: 3px solid var(--color-valve-glow);
+  outline-offset: 2px;
+}
+
+.field-slider output {
+  font-family: var(--font-mechanical);
+  color: var(--color-brass-dark);
+}
+
+/* ---- Buttons ------------------------------------------------------------ */
+
+.btn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: var(--space-2);
+  min-height: 44px;
+  padding: var(--space-3) var(--space-5);
+  border: var(--border-brass);
+  border-radius: var(--radius-rivet);
+  background: var(--bg-panel);
+  font-family: var(--font-mechanical);
+  font-size: var(--text-sm);
+  letter-spacing: 0.03em;
+  text-transform: uppercase;
+  transition: transform var(--duration-quick) var(--ease-standard),
+              box-shadow var(--duration-quick) var(--ease-standard);
+}
+.btn:hover { transform: translateY(-1px); box-shadow: var(--shadow-panel); }
+.btn:active { transform: translateY(0); }
+.btn:disabled { opacity: 0.5; cursor: not-allowed; transform: none; box-shadow: none; }
+
+.btn-brass {
+  background: linear-gradient(180deg, var(--color-brass-light), var(--color-brass));
+  color: var(--color-iron-panel);
+  border-color: var(--color-brass-dark);
+}
+.btn-ghost {
+  background: transparent;
+  border-color: var(--color-slate-light);
+  color: var(--text-secondary);
+}
+.btn-block { width: 100%; }
+.btn-small { min-height: 36px; padding: var(--space-2) var(--space-4); font-size: var(--text-xs); }
+
+/* The lever — deliberately not a .btn. A real toggle switch mounted on its own
+   plate, not a labeled pill button: it's the one big physical control in the whole
+   console, and should read as an object, not chrome. Rest position is upright;
+   engaging it throws the handle down and it STAYS thrown (no spring-back) until
+   the drawer housing it retracts, or a new manuscript resets it. */
+.lever-switch {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: var(--space-2);
+  width: 100%;
+  min-height: 44px;
+  padding: var(--space-2) 0;
+  background: transparent;
+  border: none;
+  cursor: pointer;
+}
+.lever-switch:disabled { opacity: 0.5; cursor: not-allowed; }
+
+.lever-switch-plate {
+  position: relative;
+  display: flex;
+  align-items: flex-end;
+  justify-content: center;
+  width: 96px;
+  height: 112px;
+  padding-bottom: var(--space-3);
+  background: linear-gradient(180deg, var(--color-iron-soft), var(--color-iron-panel));
+  border: var(--border-hairline);
+  border-radius: var(--radius-rivet);
+  box-shadow: var(--shadow-inset), 0 2px 4px rgba(0, 0, 0, 0.35);
+  overflow: hidden;
+}
+.lever-switch-plate::before {
+  content: "";
+  position: absolute;
+  inset: 6px;
+  border: 1px dashed rgba(184, 134, 59, 0.3);
+  border-radius: 2px;
+  pointer-events: none;
+}
+.lever-switch-plate::after {
+  /* corner rivets */
+  content: "";
+  position: absolute;
+  inset: 0;
+  background:
+    radial-gradient(circle 2px at 10px 10px, var(--color-brass), transparent 2.2px),
+    radial-gradient(circle 2px at calc(100% - 10px) 10px, var(--color-brass), transparent 2.2px);
+  pointer-events: none;
+}
+
+.lever-switch-icon {
+  width: 46px;
+  height: 68px;
+  transform-origin: 50% 92%;
+  transition: transform var(--duration-standard) var(--ease-mechanical);
+}
+.lever-switch:hover:not(:disabled) .lever-switch-icon {
+  transform: rotate(-8deg);
+}
+.lever-switch.is-engaged .lever-switch-icon {
+  transform: rotate(55deg);
+}
+
+.lever-switch-label {
+  font-family: var(--font-mechanical);
+  font-size: var(--text-xs);
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  color: var(--color-brass-dark);
+}
+
+/* ---- Screen 1: Engine connect -------------------------------------------- */
+
+.screen-connect {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: var(--space-6) var(--space-4);
+}
+
+.connect-card {
+  width: min(480px, 100%);
+  background: var(--bg-panel);
+  border: var(--border-brass);
+  border-radius: var(--radius-rivet);
+  box-shadow: var(--shadow-panel);
+  padding: var(--space-6);
+}
+
+.eyebrow {
+  font-family: var(--font-mechanical);
+  font-size: var(--text-xs);
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  color: var(--color-brass-dark);
+  margin-bottom: var(--space-2);
+}
+
+.connect-title {
+  font-family: var(--font-display);
+  font-weight: 700;
+  font-size: var(--text-xl);
+  line-height: 1.05;
+  margin-bottom: var(--space-3);
+}
+
+.connect-subtitle {
+  color: var(--text-secondary);
+  margin-bottom: var(--space-5);
+}
+
+.engine-choice {
+  border: 0;
+  padding: 0;
+  margin: 0 0 var(--space-5);
+  display: grid;
+  gap: var(--space-3);
+}
+
+.engine-card {
+  display: grid;
+  grid-template-columns: auto 1fr auto;
+  gap: var(--space-1) var(--space-3);
+  padding: var(--space-4);
+  border: var(--border-hairline);
+  border-radius: var(--radius-rivet);
+  cursor: pointer;
+  transition: border-color var(--duration-quick) var(--ease-standard),
+              background var(--duration-quick) var(--ease-standard);
+}
+.engine-card:has(input:checked) {
+  border-color: var(--color-brass);
+  background: rgba(184, 134, 59, 0.08);
+}
+.engine-card input { grid-row: 1; }
+.engine-card-name {
+  grid-column: 2; grid-row: 1;
+  font-family: var(--font-mechanical);
+  font-weight: 400;
+}
+.engine-card-tag {
+  grid-column: 3; grid-row: 1;
+  font-size: var(--text-xs);
+  color: var(--color-brass-dark);
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+  align-self: center;
+}
+.engine-card-desc {
+  grid-column: 2 / 4; grid-row: 2;
+  font-size: var(--text-sm);
+  color: var(--text-secondary);
+}
+
+.connect-error, .console-error {
+  color: var(--color-rust);
+  font-size: var(--text-sm);
+  margin: var(--space-3) 0;
+}
+
+/* ---- Screen 3: Console ---------------------------------------------------- */
+
+.screen-console {
+  padding: var(--space-4) var(--space-4) var(--space-7);
+  max-width: 1200px;
+  margin: 0 auto;
+}
+
+.console-header {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  flex-wrap: wrap;
+  gap: var(--space-3);
+  padding-block: var(--space-5);
+  border-bottom: var(--border-hairline);
+  margin-bottom: var(--space-5);
+}
+
+.console-title {
+  font-family: var(--font-display);
+  font-weight: 700;
+  font-size: var(--text-lg);
+}
+
+.console-main {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) minmax(240px, 300px);
+  gap: var(--space-5);
+  align-items: start;
+  position: relative;
+}
+
+.panel {
+  background: var(--bg-panel);
+  border: var(--border-hairline);
+  border-radius: var(--radius-rivet);
+  padding: var(--space-5);
+  box-shadow: var(--shadow-panel);
+}
+
+.panel-heading {
+  font-family: var(--font-mechanical);
+  font-size: var(--text-xs);
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  color: var(--color-brass-dark);
+  border-bottom: 1px solid var(--color-parchment-shadow);
+  padding-bottom: var(--space-3);
+  margin-bottom: var(--space-4);
+}
+
+/* setup-drawer is a true off-canvas overlay, not a grid column — it covers the
+   manuscript column while open and slides fully away once locked, so the
+   manuscript actually reclaims that width rather than merely being uncovered in
+   place. .setup-drawer-clip is a dedicated clipping box (not applied to
+   console-main itself, which would also clip the manuscript/dials panels' own
+   box-shadows) sized to the drawer's own footprint — without it, no fixed
+   translateX% reliably clears the viewport at every scroll position. */
+.setup-drawer-clip {
+  position: absolute;
+  inset: 0;
+  overflow: hidden;
+  pointer-events: none;
+  z-index: var(--z-panel-lock);
+}
+
+.setup-drawer {
+  position: absolute;
+  inset: 0;
+  width: min(340px, 100%);
+  display: flex;
+  flex-direction: column;
+  background: var(--bg-panel);
+  border: var(--border-hairline);
+  border-right: var(--border-brass);
+  border-radius: var(--radius-rivet);
+  box-shadow: var(--shadow-panel);
+  pointer-events: auto;
+  transform: translateX(0);
+  transition: transform var(--duration-standard) var(--ease-mechanical);
+}
+.setup-drawer.is-locked {
+  transform: translateX(-105%);
+  pointer-events: none;
+}
+
+.setup-drawer-scroll {
+  flex: 1 1 auto;
+  overflow-y: auto;
+  padding: var(--space-5);
+  display: grid;
+  gap: var(--space-5);
+}
+
+.setup-drawer-footer {
+  flex: 0 0 auto;
+  padding: var(--space-4) var(--space-5);
+  border-top: var(--border-hairline);
+  background:
+    repeating-linear-gradient(135deg, rgba(0,0,0,0.03) 0 2px, transparent 2px 14px),
+    var(--bg-panel);
+}
+
+.manuscript-slot {
+  min-height: 420px;
+}
+
+.manuscript-paper {
+  background: var(--bg-panel);
+  border: var(--border-hairline);
+  border-radius: var(--radius-rivet);
+  box-shadow: var(--shadow-panel);
+  padding: var(--space-6);
+  min-height: 420px;
+  clip-path: polygon(
+    0% 1.5%, 3% 0%, 9% 1%, 15% 0.2%, 22% 1.2%, 30% 0%, 38% 1%, 46% 0.3%,
+    54% 1.1%, 62% 0%, 70% 1%, 78% 0.2%, 86% 1.2%, 93% 0%, 100% 1.5%,
+    100% 100%, 0% 100%
+  );
+}
+
+.manuscript-placeholder {
+  color: var(--text-secondary);
+  font-style: italic;
+  font-family: var(--font-body);
+}
+
+.manuscript-letterhead {
+  border-bottom: 2px solid var(--color-brass);
+  padding-bottom: var(--space-3);
+  margin-bottom: var(--space-4);
+}
+.manuscript-agency {
+  font-family: var(--font-display);
+  font-weight: 700;
+  font-size: var(--text-md);
+}
+.manuscript-byline {
+  font-family: var(--font-body);
+  font-style: italic;
+  color: var(--text-secondary);
+  font-size: var(--text-sm);
+}
+
+.manuscript-text {
+  font-family: var(--font-body);
+  font-size: var(--text-base);
+  line-height: 1.7;
+  white-space: pre-wrap;
+}
+
+.manuscript-text .beat-line {
+  display: block;
+}
+
+.manuscript-text .write-head {
+  display: inline-block;
+  width: 0.5em;
+  height: 1em;
+  vertical-align: text-bottom;
+  background: var(--color-brass-dark);
+  margin-left: 1px;
+}
+
+.manuscript-status {
+  margin-top: var(--space-4);
+  font-family: var(--font-mechanical);
+  font-size: var(--text-xs);
+  color: var(--color-brass-dark);
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+}
+.manuscript-status.is-concluded {
+  color: var(--color-patina);
+}
+.manuscript-status.is-jammed {
+  color: var(--color-rust);
+}
+.manuscript-status.is-paused {
+  color: var(--color-slate);
+}
+
+/* Shows the real, composer.js-computed wait between moving a dial and its effect
+   landing (structurally two beats out — see console.js) rather than hiding it. */
+.dial-progress {
+  margin-bottom: var(--space-5);
+}
+.dial-progress-label {
+  display: block;
+  font-family: var(--font-mechanical);
+  font-size: var(--text-xs);
+  color: var(--color-brass-dark);
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+  margin-bottom: var(--space-2);
+}
+.dial-progress-track {
+  height: 6px;
+  background: var(--color-iron);
+  border-radius: 3px;
+  box-shadow: var(--shadow-inset);
+  overflow: hidden;
+}
+.dial-progress-fill {
+  height: 100%;
+  width: 0%;
+  background: linear-gradient(90deg, var(--color-brass-dark), var(--color-valve-glow));
+}
+
+.dial-group {
+  margin-bottom: var(--space-5);
+}
+.dial-group-label {
+  font-family: var(--font-mechanical);
+  font-size: var(--text-xs);
+  color: var(--text-secondary);
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+  margin-bottom: var(--space-3);
+}
+.dial-row {
+  display: grid;
+  gap: var(--space-4);
+}
+.dial, .pedal {
+  display: block;
+}
+.dial-name {
+  display: block;
+  font-family: var(--font-mechanical);
+  font-size: var(--text-xs);
+  margin-bottom: var(--space-1);
+}
+
+.pedal input[type="range"]::-webkit-slider-thumb {
+  border-radius: var(--radius-rivet);
+  width: 26px;
+  height: 16px;
+  background: linear-gradient(180deg, var(--color-slate-light), var(--color-iron-soft));
+}
+
+.dial-group-pedals[data-inert="true"] .pedal {
+  opacity: 0.55;
+}
+.dial-group-stops[data-inert="true"] .dial {
+  opacity: 0.55;
+}
+
+.safety-governor {
+  display: flex;
+  align-items: center;
+  gap: var(--space-2);
+  margin-top: var(--space-4);
+  font-family: var(--font-mechanical);
+  font-size: var(--text-xs);
+  color: var(--text-secondary);
+  letter-spacing: 0.03em;
+}
+.safety-governor-light {
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+  background: var(--color-valve-glow);
+  box-shadow: var(--shadow-glow);
+  flex: none;
+}
+
+/* Bind & Archive / New Manuscript — actions on the manuscript itself, placed right
+   under the card they act on rather than as a disconnected page-level footer. */
+.manuscript-actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--space-4);
+  justify-content: center;
+  margin-top: var(--space-5);
+}
+
+.console-error {
+  text-align: center;
+}
+
+/* ---- Responsive: the drawer becomes a full-width sheet, dials drop below the
+   manuscript, on narrow viewports ------------------------------------------- */
+@media (max-width: 900px) {
+  .console-main {
+    grid-template-columns: 1fr;
+  }
+  .setup-drawer {
+    width: 100%;
+  }
+}

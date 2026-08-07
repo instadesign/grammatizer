@@ -1,0 +1,103 @@
+/* Design tokens for The Great Automatic Grammatizator.
+   One deliberate identity — an aged brass-and-parchment machine console — rather than
+   a light/dark toggle: the steampunk workshop look is the point, not a mode to escape. */
+
+:root {
+  /* ---- Palette -------------------------------------------------------- */
+  --color-parchment:       #ede0c8;
+  --color-parchment-dark:  #ddcda8;
+  --color-parchment-shadow:#c9b98f;
+
+  --color-iron:      #1f1d1a;
+  --color-iron-soft:  #2c2925;
+  --color-iron-panel: #171512;
+
+  --color-brass:       #b8863b;
+  --color-brass-light: #d9ab5c;
+  --color-brass-dark:  #8f6526;
+
+  --color-patina:  #5b8a76;
+  --color-valve-glow: #d98a2b;
+  --color-valve-glow-soft: rgba(217, 138, 43, 0.35);
+
+  --color-rust: #a63d40;
+  --color-slate: #6b6459;
+  --color-slate-light: #948c7d;
+
+  --color-paper-white: #f7f1e1;
+
+  /* ---- Semantic aliases ------------------------------------------------ */
+  --bg-console:        var(--color-parchment);
+  --bg-panel:          var(--color-paper-white);
+  --bg-ignition:       var(--color-iron-panel);
+  --text-primary:      var(--color-iron);
+  --text-secondary:    var(--color-slate);
+  --text-on-dark:      var(--color-brass-light);
+  --border-etched:     var(--color-iron);
+  --accent-brass:      var(--color-brass);
+  --accent-patina:     var(--color-patina);
+  --accent-danger:     var(--color-rust);
+  --glow-valve:        var(--color-valve-glow);
+
+  /* ---- Type -------------------------------------------------------------
+     Fraunces: display, used sparingly (title, screen headings).
+     Special Elite: mechanical labels, ignition boot text, lever/dial captions.
+     Literata: the manuscript itself — long-form reading face. */
+  --font-display: "Fraunces", "Iowan Old Style", Georgia, serif;
+  --font-mechanical: "Special Elite", "Courier New", monospace;
+  --font-body: "Literata", Georgia, "Times New Roman", serif;
+
+  --text-xs:   clamp(0.72rem, 0.68rem + 0.2vw, 0.8rem);
+  --text-sm:   clamp(0.82rem, 0.78rem + 0.2vw, 0.9rem);
+  --text-base: clamp(0.95rem, 0.9rem + 0.25vw, 1.05rem);
+  --text-md:   clamp(1.1rem, 1rem + 0.4vw, 1.3rem);
+  --text-lg:   clamp(1.4rem, 1.2rem + 0.8vw, 1.9rem);
+  --text-xl:   clamp(1.9rem, 1.5rem + 1.6vw, 2.9rem);
+
+  /* ---- Spacing (4px base) ------------------------------------------------ */
+  --space-1: 0.25rem;
+  --space-2: 0.5rem;
+  --space-3: 0.75rem;
+  --space-4: 1rem;
+  --space-5: 1.5rem;
+  --space-6: 2rem;
+  --space-7: 3rem;
+  --space-8: 4.5rem;
+
+  /* ---- Structure ---------------------------------------------------------- */
+  --radius-rivet: 2px;    /* almost-sharp — this is a riveted machine, not a soft app */
+  --radius-gauge: 50%;
+  --border-hairline: 1px solid var(--color-iron);
+  --border-brass: 2px solid var(--color-brass);
+
+  --shadow-panel: 0 6px 18px rgba(31, 29, 26, 0.28);
+  --shadow-inset: inset 0 2px 6px rgba(31, 29, 26, 0.25);
+  --shadow-glow: 0 0 14px var(--color-valve-glow-soft);
+
+  /* ---- Motion --------------------------------------------------------------
+     Character reveal pace derives from ~220wpm adult reading speed
+     (220 words/min * ~5.5 chars/word ≈ 1210 chars/min ≈ 50ms/char). */
+  --pace-char-ms: 48;
+  --duration-quick: 180ms;
+  --duration-standard: 420ms;
+  --duration-signature: 1100ms;
+  --ease-mechanical: cubic-bezier(0.34, 1.56, 0.64, 1); /* slight overshoot, like a lever settling */
+  --ease-standard: cubic-bezier(0.4, 0, 0.2, 1);
+
+  /* ---- Layering --------------------------------------------------------- */
+  --z-console: 1;
+  --z-panel-lock: 5;
+  --z-ignition: 10;
+  --z-transition-overlay: 20;
+  --z-toast: 30;
+}
+
+/* Reduced-motion is read once in JS (state.js) to branch behavior for JS-driven
+   animation; this custom property lets pure-CSS keyframes key off the same signal. */
+@media (prefers-reduced-motion: reduce) {
+  :root {
+    --duration-quick: 1ms;
+    --duration-standard: 1ms;
+    --duration-signature: 1ms;
+  }
+}

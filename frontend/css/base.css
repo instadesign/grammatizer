@@ -1,0 +1,155 @@
+/* Reset, font loading, and base typography. */
+
+@font-face {
+  font-family: "Fraunces";
+  src: url("../assets/fonts/Fraunces/Fraunces-Regular.woff2") format("woff2");
+  font-weight: 400;
+  font-style: normal;
+  font-display: swap;
+}
+@font-face {
+  font-family: "Fraunces";
+  src: url("../assets/fonts/Fraunces/Fraunces-Bold.woff2") format("woff2");
+  font-weight: 700;
+  font-style: normal;
+  font-display: swap;
+}
+@font-face {
+  font-family: "Special Elite";
+  src: url("../assets/fonts/SpecialElite/SpecialElite-Regular.woff2") format("woff2");
+  font-weight: 400;
+  font-style: normal;
+  font-display: swap;
+}
+@font-face {
+  font-family: "Literata";
+  src: url("../assets/fonts/Literata/Literata-Regular.woff2") format("woff2");
+  font-weight: 400;
+  font-style: normal;
+  font-display: swap;
+}
+@font-face {
+  font-family: "Literata";
+  src: url("../assets/fonts/Literata/Literata-SemiBold.woff2") format("woff2");
+  font-weight: 600;
+  font-style: normal;
+  font-display: swap;
+}
+@font-face {
+  font-family: "Literata";
+  src: url("../assets/fonts/Literata/Literata-Italic.woff2") format("woff2");
+  font-weight: 400;
+  font-style: italic;
+  font-display: swap;
+}
+
+*, *::before, *::after {
+  box-sizing: border-box;
+}
+
+html {
+  color-scheme: light;
+  /* This app commits to one illustrated identity rather than following the OS
+     light/dark preference — see tokens.css. */
+}
+
+body {
+  margin: 0;
+  min-height: 100vh;
+  background: var(--bg-console);
+  color: var(--text-primary);
+  font-family: var(--font-body);
+  font-size: var(--text-base);
+  line-height: 1.5;
+  -webkit-font-smoothing: antialiased;
+  overflow-x: hidden;
+}
+
+h1, h2, h3, p, figure {
+  margin: 0;
+}
+
+button {
+  font-family: inherit;
+  color: inherit;
+  cursor: pointer;
+}
+
+input, select, button, textarea {
+  font-family: inherit;
+  font-size: inherit;
+}
+
+/* iOS auto-zooms on focus if a text input computes under 16px. */
+input, select, textarea {
+  font-size: max(var(--text-base), 16px);
+}
+
+img, svg {
+  display: block;
+  max-width: 100%;
+}
+
+a {
+  color: var(--color-brass-dark);
+}
+
+/* ---- Focus ---------------------------------------------------------- */
+:focus {
+  outline: none;
+}
+:focus-visible {
+  outline: 3px solid var(--color-valve-glow);
+  outline-offset: 2px;
+  border-radius: var(--radius-rivet);
+}
+
+/* ---- Utilities -------------------------------------------------------- */
+.visually-hidden {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  padding: 0;
+  margin: -1px;
+  overflow: hidden;
+  clip: rect(0, 0, 0, 0);
+  white-space: nowrap;
+  border: 0;
+}
+
+.screen {
+  min-height: 100vh;
+  width: 100%;
+}
+
+/* Any component class that sets its own `display` (`.btn`, `.ignition-form`, etc.)
+   silently outranks the browser default `[hidden] { display: none }` rule, since both
+   are equal-specificity author-stylesheet-vs-UA-stylesheet rules and ours loads later.
+   Without this, toggling the `hidden` property leaves the element visually visible.
+   This is deliberately global and !important — `hidden` must always mean hidden. */
+[hidden] {
+  display: none !important;
+}
+
+/* Global horizontal-scroll guard: wide content (the manuscript slot, panels) must
+   scroll internally, never the page body. */
+.scroll-x {
+  overflow-x: auto;
+  -webkit-overflow-scrolling: touch;
+}
+
+/* Quiet build tag, present on every screen -- bump the number by hand each iteration. */
+.build-tag {
+  position: fixed;
+  right: var(--space-2, 8px);
+  bottom: var(--space-2, 8px);
+  margin: 0;
+  padding: 2px 8px;
+  font-family: var(--font-mechanical, monospace);
+  font-size: 10px;
+  letter-spacing: 0.04em;
+  color: var(--text-secondary, #8a8272);
+  opacity: 0.55;
+  pointer-events: none;
+  z-index: 5;
+}

@@ -1,0 +1,87 @@
+/* Keyframes + motion overrides. The signature ignition→console transition and the
+   character-by-character manuscript reveal are driven from JS (composer.js / main.js)
+   via the Web Animations API, with genuinely different reduced-motion code paths —
+   this file covers CSS-only ambient/decorative motion and its reduced-motion opt-outs. */
+
+@keyframes ignition-flicker {
+  0%, 100% { opacity: 1; }
+  92% { opacity: 1; }
+  93% { opacity: 0.82; }
+  94% { opacity: 1; }
+  97% { opacity: 0.9; }
+  98% { opacity: 1; }
+}
+
+@keyframes scanline-drift {
+  from { background-position: 0 0; }
+  to { background-position: 0 6px; }
+}
+
+@keyframes cursor-blink {
+  0%, 45% { opacity: 1; }
+  50%, 95% { opacity: 0; }
+  100% { opacity: 1; }
+}
+
+@keyframes gauge-jitter {
+  0%, 100% { transform: rotate(0deg); }
+  25% { transform: rotate(-6deg); }
+  75% { transform: rotate(6deg); }
+}
+
+.ignition-crt {
+  animation: ignition-flicker 6s ease-in-out infinite;
+}
+.ignition-scanlines {
+  animation: scanline-drift 0.4s linear infinite;
+}
+.ignition-log .boot-cursor,
+.manuscript-text .write-head {
+  animation: cursor-blink 1s steps(1) infinite;
+}
+
+.manuscript-status.is-composing::before {
+  content: "";
+  display: inline-block;
+  width: 10px;
+  height: 10px;
+  margin-right: var(--space-2);
+  border: 2px solid var(--color-brass-dark);
+  border-top-color: transparent;
+  border-radius: 50%;
+  animation: gauge-jitter 900ms var(--ease-standard) infinite;
+  vertical-align: -1px;
+}
+
+/* Fixed-position overlay used for the ignition→console signature transition.
+   Its actual keyframes are driven by element.animate() in JS so the reduced-motion
+   branch can be a structurally different animation, not just a faster one. */
+.machine-transition {
+  position: fixed;
+  inset: 0;
+  z-index: var(--z-transition-overlay);
+  pointer-events: none;
+  opacity: 0;
+}
+
+.toast {
+  position: fixed;
+  left: 50%;
+  bottom: var(--space-6);
+  transform: translateX(-50%);
+  z-index: var(--z-toast);
+  background: var(--color-iron);
+  color: var(--color-paper-white);
+  font-family: var(--font-mechanical);
+  font-size: var(--text-sm);
+  padding: var(--space-3) var(--space-5);
+  border-radius: var(--radius-rivet);
+  border: 1px solid var(--color-brass);
+  box-shadow: var(--shadow-panel);
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .ignition-crt { animation: none; }
+  .ignition-scanlines { animation: none; opacity: 0.4; }
+  .manuscript-status.is-composing::before { animation: none; border-top-color: var(--color-brass-dark); }
+}

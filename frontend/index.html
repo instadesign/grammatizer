@@ -1,0 +1,346 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>The Great Automatic Grammatizator</title>
+<meta name="description" content="Pull the levers. Watch the machine write, line by line, in real time.">
+<link rel="stylesheet" href="css/tokens.css">
+<link rel="stylesheet" href="css/base.css">
+<link rel="stylesheet" href="css/ignition.css">
+<link rel="stylesheet" href="css/console.css">
+<link rel="stylesheet" href="css/animations.css">
+</head>
+<body>
+
+<!-- ============================================================ -->
+<!-- SCREEN 1 — Engine connect                                     -->
+<!-- ============================================================ -->
+<main id="screen-connect" class="screen screen-connect" data-screen="connect">
+  <div class="connect-card">
+    <p class="eyebrow">Machine Internals</p>
+    <h1 class="connect-title">The Great Automatic<br>Grammatizator</h1>
+    <p class="connect-subtitle">Choose the engine that will drive the machine, and give it a key.</p>
+
+    <fieldset class="engine-choice" id="engine-choice">
+      <legend class="visually-hidden">AI Engine</legend>
+
+      <label class="engine-card" data-engine-card="gemini">
+        <input type="radio" name="engine" value="gemini" checked>
+        <span class="engine-card-name">Google Gemini</span>
+        <span class="engine-card-tag">Default</span>
+        <span class="engine-card-desc">Sign in with any Google account at aistudio.google.com — no card, a genuinely free tier.</span>
+      </label>
+
+      <label class="engine-card" data-engine-card="groq">
+        <input type="radio" name="engine" value="groq">
+        <span class="engine-card-name">Groq</span>
+        <span class="engine-card-tag">Turbo</span>
+        <span class="engine-card-desc">console.groq.com — free, no card. Serves Llama 3.3 on custom hardware, dramatically faster.</span>
+      </label>
+
+      <label class="engine-card" data-engine-card="claude">
+        <input type="radio" name="engine" value="claude">
+        <span class="engine-card-name">Claude (backup)</span>
+        <span class="engine-card-tag">No key needed</span>
+        <span class="engine-card-desc">Runs on a shared house key with a strict daily limit — a fallback for when you don't have your own key, not for heavy use.</span>
+      </label>
+    </fieldset>
+
+    <label class="field" for="api-key-input" id="api-key-field">
+      <span class="field-label">API Key</span>
+      <input type="password" id="api-key-input" autocomplete="off" spellcheck="false" placeholder="Paste your key here">
+      <span class="field-hint" id="api-key-hint">Kept only for this browser session, sent only to your chosen engine. Never stored on our server.</span>
+    </label>
+    <p class="field-hint field-standalone-hint" id="claude-key-note" hidden>No key needed — the backup engine runs on a shared house key, limited to a strict daily quota. If it's exhausted, switch to Gemini or Groq with your own free key.</p>
+
+    <label class="field field-slider" for="creativity-input">
+      <span class="field-label">Creativity <output id="creativity-output">0.9</output></span>
+      <input type="range" id="creativity-input" min="0.1" max="1.5" step="0.1" value="0.9">
+    </label>
+
+    <p class="connect-error" id="connect-error" role="alert" hidden></p>
+
+    <button type="button" class="btn btn-brass btn-block" id="btn-connect">Connect the Machine</button>
+  </div>
+</main>
+
+<!-- ============================================================ -->
+<!-- SCREEN 2 — Ignition onboarding                                -->
+<!-- ============================================================ -->
+<main id="screen-ignition" class="screen screen-ignition" data-screen="ignition" hidden>
+  <div class="ignition-crt">
+    <div class="ignition-scanlines" aria-hidden="true"></div>
+    <div class="ignition-log" id="ignition-log" aria-live="polite"></div>
+
+    <form class="ignition-form" id="ignition-form" hidden>
+      <label class="ignition-field">
+        <span class="ignition-prompt">NAME OF OPERATOR&colon;</span>
+        <input type="text" id="operator-name-input" autocomplete="name" maxlength="80" required>
+      </label>
+      <label class="ignition-field">
+        <span class="ignition-prompt">PUBLISHING AGENCY&colon;</span>
+        <input type="text" id="agency-name-input" autocomplete="organization" maxlength="80" required>
+      </label>
+      <button type="submit" class="btn btn-ignition">Engage</button>
+    </form>
+  </div>
+</main>
+
+<!-- ============================================================ -->
+<!-- SCREEN 3 — Console                                            -->
+<!-- ============================================================ -->
+<main id="screen-console" class="screen screen-console" data-screen="console" hidden>
+
+  <header class="console-header">
+    <h1 class="console-title">The Great Automatic Grammatizator</h1>
+    <div class="console-header-actions">
+      <button type="button" class="btn btn-ghost btn-small" id="btn-forget-me">Forget Me</button>
+    </div>
+  </header>
+
+  <div class="console-main">
+
+    <!-- Setup + auxiliary panels: an off-canvas drawer, not a grid column -- it
+         overlays the manuscript while open and slides fully away once locked, so the
+         manuscript actually reclaims the width rather than just being uncovered. -->
+    <div class="setup-drawer-clip">
+      <aside class="setup-drawer" id="setup-drawer">
+        <div class="setup-drawer-scroll" id="setup-bank">
+
+      <section class="panel panel-setup" aria-labelledby="panel-setup-heading">
+        <h2 class="panel-heading" id="panel-setup-heading">Pre-Selector Buttons</h2>
+
+        <label class="field" for="field-category">
+          <span class="field-label">Category</span>
+          <select id="field-category" data-field="category">
+            <option>Historical</option>
+            <option>Satirical</option>
+            <option>Philosophical</option>
+            <option>Political</option>
+            <option>Romantic</option>
+            <option>Erotic</option>
+            <option selected>Humorous</option>
+            <option>Straight</option>
+          </select>
+        </label>
+
+        <label class="field" for="field-theme">
+          <span class="field-label">Theme &amp; Setting</span>
+          <select id="field-theme" data-field="theme_setting">
+            <option>Army Life</option>
+            <option>Pioneer Days</option>
+            <option>Civil War</option>
+            <option>World War</option>
+            <option>Social Upheaval</option>
+            <option selected>Wild West</option>
+            <option>Country Life</option>
+            <option>Childhood Memories</option>
+            <option>Seafaring</option>
+            <option>The Sea Bottom</option>
+          </select>
+        </label>
+
+        <label class="field" for="field-style">
+          <span class="field-label">Style &amp; Voice</span>
+          <select id="field-style" data-field="style_voice">
+            <option>Classical</option>
+            <option selected>Whimsical</option>
+            <option>Racy</option>
+            <option>Hard-Boiled</option>
+            <option>Stream-of-Consciousness</option>
+            <option>Gothic &amp; Dense</option>
+            <option>Lyrical</option>
+          </select>
+        </label>
+
+        <label class="field" for="field-ending">
+          <span class="field-label">Ending</span>
+          <select id="field-ending" data-field="ending">
+            <option selected>Happy &amp; Resolved</option>
+            <option>Tragic &amp; Heartbreaking</option>
+            <option>A Mind-Bending Plot Twist</option>
+            <option>An Unresolved Cliffhanger</option>
+          </select>
+        </label>
+
+        <label class="field field-slider" for="field-wordage">
+          <span class="field-label">Wordage <output id="wordage-output">1500</output></span>
+          <input type="range" id="field-wordage" data-field="target_words" min="500" max="10000" step="250" value="1500">
+        </label>
+
+        <label class="field" for="field-custom">
+          <span class="field-label">Mandatory Details <span class="field-optional">(optional)</span></span>
+          <input type="text" id="field-custom" data-field="custom_elements" maxlength="280" placeholder="e.g. a talking clockwork owl">
+        </label>
+      </section>
+
+      <aside class="panel panel-auxiliary" aria-labelledby="panel-auxiliary-heading">
+        <h2 class="panel-heading" id="panel-auxiliary-heading">Auxiliary Attachment</h2>
+
+        <label class="field" for="field-characters">
+          <span class="field-label">Cast</span>
+          <select id="field-characters" data-field="characters">
+            <option selected>A Lone Protagonist</option>
+            <option>A Pair (Allies or Rivals)</option>
+            <option>An Ensemble Cast</option>
+          </select>
+        </label>
+
+        <label class="field" for="field-pov">
+          <span class="field-label">Point of View</span>
+          <select id="field-pov" data-field="pov">
+            <option selected>First Person</option>
+            <option>Third Person Limited</option>
+            <option>Third Person Omniscient</option>
+            <option>Second Person (Novelty)</option>
+          </select>
+        </label>
+
+        <label class="field" for="field-tense">
+          <span class="field-label">Tense</span>
+          <select id="field-tense" data-field="tense">
+            <option selected>Past Tense</option>
+            <option>Present Tense</option>
+          </select>
+        </label>
+
+        <label class="field" for="field-era">
+          <span class="field-label">Era</span>
+          <select id="field-era" data-field="setting_era">
+            <option selected>Victorian</option>
+            <option>Interwar</option>
+            <option>Contemporary</option>
+            <option>Far Future</option>
+          </select>
+        </label>
+
+        <label class="field" for="field-audience">
+          <span class="field-label">Audience</span>
+          <select id="field-audience" data-field="audience">
+            <option>Children's</option>
+            <option>Young Adult</option>
+            <option selected>Adult</option>
+          </select>
+        </label>
+
+        <label class="field" for="field-structure">
+          <span class="field-label">Structure</span>
+          <select id="field-structure" data-field="structure">
+            <option selected>Single Unbroken Scene</option>
+            <option>Chaptered Sketch</option>
+          </select>
+        </label>
+      </aside>
+
+        </div><!-- /setup-drawer-scroll (#setup-bank) -->
+
+        <div class="setup-drawer-footer">
+          <button type="button" class="lever-switch" id="btn-pull-lever" aria-label="Pull lever — begin composing">
+            <span class="lever-switch-plate">
+              <svg class="lever-switch-icon" id="lever-icon" viewBox="0 0 40 60" aria-hidden="true"><use href="assets/svg/lever.svg#lever"></use></svg>
+            </span>
+            <span class="lever-switch-label">Pull Lever</span>
+          </button>
+        </div>
+      </aside><!-- /setup-drawer -->
+    </div><!-- /setup-drawer-clip -->
+
+    <!-- The manuscript slot: paper feeds out here, continuously, once composing --
+         a full-width sibling of the drawer, not one of its columns, so it actually
+         widens once the drawer retracts. -->
+    <section class="manuscript-slot" aria-labelledby="manuscript-heading">
+      <h2 class="visually-hidden" id="manuscript-heading">Manuscript</h2>
+      <div class="manuscript-paper" id="manuscript-paper">
+        <p class="manuscript-placeholder" id="manuscript-placeholder">Set the pre-selectors, then pull the lever.</p>
+        <div class="manuscript-letterhead" id="manuscript-letterhead" hidden>
+          <p class="manuscript-agency" id="manuscript-agency"></p>
+          <p class="manuscript-byline" id="manuscript-byline"></p>
+        </div>
+        <div class="manuscript-text" id="manuscript-text" aria-live="polite"><span id="manuscript-text-content"></span><span class="write-head" id="manuscript-write-head" hidden></span></div>
+        <p class="manuscript-status" id="manuscript-status" hidden></p>
+      </div>
+
+      <div class="manuscript-actions">
+        <button type="button" class="btn btn-ghost" id="btn-pause" hidden>Pause</button>
+        <button type="button" class="btn btn-ghost" id="btn-stop" hidden>Stop</button>
+        <button type="button" class="btn btn-brass" id="btn-bind-archive" hidden>Bind &amp; Archive (PDF)</button>
+        <button type="button" class="btn btn-ghost" id="btn-new-manuscript" hidden>New Manuscript</button>
+      </div>
+      <p class="console-error" id="console-error" role="alert" hidden></p>
+    </section>
+
+    <!-- Continuous dials: always live, even mid-composition -->
+    <section class="panel panel-dials" aria-labelledby="panel-dials-heading">
+      <h2 class="panel-heading" id="panel-dials-heading">Continuous Adjusters</h2>
+
+      <div class="dial-progress" id="dial-progress" hidden aria-hidden="true">
+        <span class="dial-progress-label">Recalibrating…</span>
+        <div class="dial-progress-track"><div class="dial-progress-fill" id="dial-progress-fill"></div></div>
+      </div>
+
+      <div class="dial-group dial-group-stops">
+        <p class="dial-group-label">Organ Stops</p>
+        <div class="dial-row">
+          <label class="dial" for="dial-tension">
+            <span class="dial-name">Tension</span>
+            <input type="range" id="dial-tension" data-dial="tension" min="0" max="10" value="4">
+          </label>
+          <label class="dial" for="dial-surprise">
+            <span class="dial-name">Surprise</span>
+            <input type="range" id="dial-surprise" data-dial="surprise" min="0" max="10" value="4">
+          </label>
+          <label class="dial" for="dial-humour">
+            <span class="dial-name">Humour</span>
+            <input type="range" id="dial-humour" data-dial="humour" min="0" max="10" value="6">
+          </label>
+          <label class="dial" for="dial-pathos">
+            <span class="dial-name">Pathos</span>
+            <input type="range" id="dial-pathos" data-dial="pathos" min="0" max="10" value="3">
+          </label>
+          <label class="dial" for="dial-mystery">
+            <span class="dial-name">Mystery</span>
+            <input type="range" id="dial-mystery" data-dial="mystery" min="0" max="10" value="3">
+          </label>
+        </div>
+      </div>
+
+      <div class="dial-group dial-group-pedals">
+        <p class="dial-group-label">Foot Pedals</p>
+        <div class="dial-row">
+          <label class="pedal" for="dial-passion">
+            <span class="dial-name">Passion</span>
+            <input type="range" id="dial-passion" data-dial="passion" min="0" max="10" value="2">
+          </label>
+          <label class="pedal" for="dial-intensity">
+            <span class="dial-name">Intensity</span>
+            <input type="range" id="dial-intensity" data-dial="intensity" min="0" max="10" value="3">
+          </label>
+        </div>
+        <p class="safety-governor" id="safety-governor">
+          <span class="safety-governor-light" aria-hidden="true"></span>
+          Safety Governor — Engaged
+        </p>
+      </div>
+    </section>
+
+  </div><!-- /console-main -->
+
+</main>
+
+<!-- Signature ignition→console transition overlay -->
+<div id="machine-transition" class="machine-transition" aria-hidden="true"></div>
+
+<div class="toast" id="toast" role="status" aria-live="polite" hidden></div>
+
+<p class="build-tag" id="build-tag" aria-hidden="true">Beta v0.15</p>
+
+<script src="js/state.js"></script>
+<script src="js/api.js"></script>
+<script src="js/composer.js"></script>
+<script src="js/screens/engine-connect.js"></script>
+<script src="js/screens/ignition-onboarding.js"></script>
+<script src="js/screens/console.js"></script>
+<script src="js/main.js"></script>
+</body>
+</html>

@@ -1,0 +1,30 @@
+# Reference systemd unit for the Grammatizator FastAPI backend.
+# Not applied to any live server — copy to /etc/systemd/system/grammatizer.service,
+# adjust paths/user, then:
+#   sudo systemctl daemon-reload
+#   sudo systemctl enable --now grammatizer
+
+[Unit]
+Description=Grammatizator FastAPI backend (uvicorn)
+After=network.target
+
+[Service]
+Type=simple
+User=grammatizer
+Group=grammatizer
+WorkingDirectory=/var/www/grammatizer/backend
+EnvironmentFile=/etc/grammatizer/grammatizer.env
+ExecStart=/var/www/grammatizer/backend/.venv/bin/uvicorn app.main:app --host 127.0.0.1 --port 8000 --workers 2
+Restart=on-failure
+RestartSec=2
+NoNewPrivileges=true
+PrivateTmp=true
+ProtectSystem=full
+
+[Install]
+WantedBy=multi-user.target
+
+# /etc/grammatizer/grammatizer.env (server-only, not in this repo) should hold:
+#   GEMINI_API_KEY=...
+#   GROQ_API_KEY=...
+#   ALLOWED_ORIGINS=https://grammatizer.example.com

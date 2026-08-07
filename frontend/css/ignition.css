@@ -1,0 +1,109 @@
+/* Screen 2 — the ignition/boot sequence: the machine's electronic brain waking up.
+   Dark, brass-phosphor glow (not a generic green terminal — same brass family as the
+   console, this is the same machine, a different layer of it). */
+
+.screen-ignition {
+  background: var(--bg-ignition);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: var(--space-5);
+}
+
+.ignition-crt {
+  position: relative;
+  width: min(640px, 100%);
+  min-height: 360px;
+  padding: var(--space-6);
+  background: radial-gradient(ellipse at 50% 30%, #201b12 0%, var(--bg-ignition) 75%);
+  border: 1px solid var(--color-brass-dark);
+  border-radius: 6px;
+  box-shadow: 0 0 40px rgba(217, 138, 43, 0.15), inset 0 0 60px rgba(0, 0, 0, 0.6);
+  overflow: hidden;
+}
+
+.ignition-scanlines {
+  position: absolute;
+  inset: 0;
+  pointer-events: none;
+  background: repeating-linear-gradient(
+    to bottom,
+    rgba(217, 138, 43, 0.05) 0px,
+    rgba(217, 138, 43, 0.05) 1px,
+    transparent 2px,
+    transparent 3px
+  );
+  mix-blend-mode: screen;
+}
+
+.ignition-log {
+  font-family: var(--font-mechanical);
+  font-size: var(--text-sm);
+  line-height: 1.9;
+  color: var(--color-brass-light);
+  text-shadow: 0 0 6px var(--color-valve-glow-soft);
+  white-space: pre-wrap;
+  min-height: 4em;
+}
+
+.ignition-log .boot-cursor {
+  display: inline-block;
+  width: 0.55em;
+  height: 1em;
+  background: var(--color-brass-light);
+  vertical-align: text-bottom;
+  margin-left: 2px;
+}
+
+.ignition-form {
+  margin-top: var(--space-6);
+  display: grid;
+  gap: var(--space-5);
+}
+
+.ignition-field {
+  display: block;
+}
+
+.ignition-prompt {
+  display: block;
+  font-family: var(--font-mechanical);
+  font-size: var(--text-sm);
+  color: var(--color-brass-light);
+  text-shadow: 0 0 6px var(--color-valve-glow-soft);
+  margin-bottom: var(--space-2);
+  letter-spacing: 0.03em;
+}
+
+.ignition-field input {
+  width: 100%;
+  min-height: 44px;
+  padding: var(--space-2) 0;
+  background: transparent;
+  border: none;
+  border-bottom: 2px solid var(--color-brass-dark);
+  color: var(--color-paper-white);
+  font-family: var(--font-mechanical);
+  font-size: var(--text-base);
+  caret-color: var(--color-valve-glow);
+}
+.ignition-field input:focus-visible {
+  border-bottom-color: var(--color-valve-glow);
+  outline: none;
+}
+
+.btn-ignition {
+  justify-self: start;
+  background: transparent;
+  border: 2px solid var(--color-brass);
+  color: var(--color-brass-light);
+  font-family: var(--font-mechanical);
+  text-transform: uppercase;
+  letter-spacing: 0.08em;
+  padding: var(--space-3) var(--space-6);
+  border-radius: var(--radius-rivet);
+  min-height: 44px;
+}
+.btn-ignition:hover {
+  background: rgba(217, 138, 43, 0.12);
+}

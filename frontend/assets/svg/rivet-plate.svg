@@ -1,0 +1,9 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 40 40">
+  <symbol id="rivet-plate" viewBox="0 0 40 40">
+    <path d="M2 2 H38 V38" fill="none" stroke="currentColor" stroke-width="2"/>
+    <circle cx="6" cy="6" r="2" fill="currentColor"/>
+    <circle cx="34" cy="6" r="2" fill="currentColor"/>
+    <circle cx="34" cy="34" r="2" fill="currentColor"/>
+  </symbol>
+</svg>
