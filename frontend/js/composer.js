@@ -19,12 +19,12 @@ Grammatizer.composer = (function () {
   // beat that can read the new values is N+2. onDialsPending/onDialsApplied below
   // let the UI show that real wait rather than leaving it unexplained.
   const DIALS_APPLY_LAG_BEATS = 2;
-  const DEFAULT_BEAT_DURATION_MS = 90 * 48; // seed estimate before any real beat has completed
+  const SEED_BEAT_CHARS = 90; // seed estimate before any real beat has completed, in chars-worth of reveal time
 
   function getCharIntervalMs() {
     const raw = getComputedStyle(document.documentElement).getPropertyValue("--pace-char-ms");
     const n = parseFloat(raw);
-    return Number.isFinite(n) && n > 0 ? n : 48;
+    return Number.isFinite(n) && n > 0 ? n : 36;
   }
 
   function joinBeat(existing, beat) {
@@ -68,7 +68,7 @@ Grammatizer.composer = (function () {
     let currentBeatCharsTotal = 0;
     let currentBeatCharsShown = 0;
     let currentBeatStartedAt = 0;
-    let lastBeatDurationMs = DEFAULT_BEAT_DURATION_MS;
+    let lastBeatDurationMs = SEED_BEAT_CHARS * charIntervalMs; // derived from the live pace, not a stale hardcoded copy of it
     let pendingTargetGeneration = null;
 
     function fetchBeat(storySoFar) {

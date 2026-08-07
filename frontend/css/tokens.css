@@ -75,9 +75,10 @@
   --shadow-glow: 0 0 14px var(--color-valve-glow-soft);
 
   /* ---- Motion --------------------------------------------------------------
-     Character reveal pace derives from ~220wpm adult reading speed
-     (220 words/min * ~5.5 chars/word ≈ 1210 chars/min ≈ 50ms/char). */
-  --pace-char-ms: 48;
+     Character reveal pace originally derived from ~220wpm adult reading speed
+     (220 words/min * ~5.5 chars/word ≈ 1210 chars/min ≈ 50ms/char); bumped 25%
+     faster on request -- 48ms * 0.75 = 36ms, ≈293wpm. */
+  --pace-char-ms: 36;
   --duration-quick: 180ms;
   --duration-standard: 420ms;
   --duration-signature: 1100ms;
