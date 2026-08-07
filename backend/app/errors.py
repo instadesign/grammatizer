@@ -2,12 +2,18 @@
 Never include the raw exception text in what's returned or logged — for BYOK requests it
 can echo back request details we don't want surfacing, including near the API key."""
 
+import re
+
 
 class GenerationError(Exception):
-    def __init__(self, code: str, message: str, status_code: int = 502):
+    def __init__(self, code: str, message: str, status_code: int = 502, retry_after_seconds=None):
         self.code = code
         self.message = message
         self.status_code = status_code
+        # Only set when the provider told us a concrete wait (currently just Groq's
+        # daily-token-cap message) -- lets generation.py skip pointless quick retries
+        # against a cooldown measured in minutes, not seconds.
+        self.retry_after_seconds = retry_after_seconds
         super().__init__(message)
 
 
@@ -25,6 +31,23 @@ def _gemini_reason(exc: Exception):
     except (AttributeError, TypeError):
         pass
     return None
+
+
+# Groq's RateLimitError message includes a concrete cooldown, e.g. "...on tokens
+# per day (TPD): Limit 100000, Used 99935... Please try again in 11m43.29s." --
+# worth parsing just the number (never the surrounding text, per this module's own
+# rule above) so a genuine daily-cap exhaustion can say "try again in ~12 minutes"
+# instead of the same vague message as a two-second blip.
+_GROQ_RETRY_RE = re.compile(r"try again in (?:([\d.]+)m)?(?:([\d.]+)s)?", re.IGNORECASE)
+
+
+def _groq_retry_seconds(exc: Exception):
+    match = _GROQ_RETRY_RE.search(str(exc))
+    if not match or not (match.group(1) or match.group(2)):
+        return None
+    minutes = float(match.group(1) or 0)
+    seconds = float(match.group(2) or 0)
+    return minutes * 60 + seconds
 
 
 def translate_exception(engine_key: str, exc: Exception) -> GenerationError:
@@ -55,7 +78,16 @@ def translate_exception(engine_key: str, exc: Exception) -> GenerationError:
         if type_name == "AuthenticationError":
             return GenerationError("invalid_api_key", "The engine rejected this API key.", 401)
         if type_name == "RateLimitError":
-            return GenerationError("rate_limited", "The engine is rate-limiting this key right now.", 429)
+            retry_seconds = _groq_retry_seconds(exc)
+            if retry_seconds and retry_seconds > 30:
+                minutes = max(1, round(retry_seconds / 60))
+                message = (
+                    f"Groq's free daily quota for this key is exhausted for now -- try again "
+                    f"in about {minutes} minute{'s' if minutes != 1 else ''}, or switch engines."
+                )
+            else:
+                message = "The engine is rate-limiting this key right now."
+            return GenerationError("rate_limited", message, 429, retry_after_seconds=retry_seconds)
         if type_name in ("APIConnectionError", "InternalServerError"):
             return GenerationError("engine_overloaded", "The engine is overloaded right now.", 503)
         return GenerationError("engine_error", "The engine failed to respond.", 502)

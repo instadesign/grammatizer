@@ -84,7 +84,14 @@ def _call_engine_with_retry(engine_key: str, api_key: str, prompt: str, temperat
             return engines.call_engine(engine_key, api_key, prompt, temperature=temperature, max_tokens=max_tokens)
         except Exception as exc:
             mapped = translate_exception(engine_key, exc)
-            if mapped.code in RETRYABLE_CODES and attempt < MAX_RATE_LIMIT_RETRIES:
+            # A cooldown longer than our whole retry budget (e.g. Groq's daily-token-cap
+            # message giving an exact multi-minute wait) can't be fixed by a couple of
+            # quick retries -- surface the real, already-informative error immediately
+            # instead of burning ~10s pretending a retry could help.
+            known_long_wait = (
+                mapped.retry_after_seconds is not None and mapped.retry_after_seconds > RETRY_WAIT_CAP_SECONDS
+            )
+            if mapped.code in RETRYABLE_CODES and attempt < MAX_RATE_LIMIT_RETRIES and not known_long_wait:
                 delay = _gemini_retry_delay_seconds(exc) if engine_key == "gemini" else DEFAULT_RETRY_WAIT_SECONDS
                 delay = min(delay, RETRY_WAIT_CAP_SECONDS)
                 attempt += 1
