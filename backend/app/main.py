@@ -41,7 +41,7 @@ def export_pdf_endpoint(req: PdfExportRequest):
     except Exception:
         raise HTTPException(
             status_code=500,
-            detail={"code": "pdf_render_failed", "message": "Could not bind the manuscript."},
+            detail={"code": "pdf_render_failed", "message": "The binding press has jammed — try again."},
         )
     return Response(
         content=pdf_bytes,
