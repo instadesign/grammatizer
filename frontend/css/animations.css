@@ -29,6 +29,11 @@
   75% { transform: rotate(6deg); }
 }
 
+@keyframes dial-lcd-bounce {
+  0%, 100% { transform: scaleY(0.35); }
+  50% { transform: scaleY(1); }
+}
+
 .ignition-crt {
   animation: ignition-flicker 6s ease-in-out infinite;
 }
@@ -84,4 +89,5 @@
   .ignition-crt { animation: none; }
   .ignition-scanlines { animation: none; opacity: 0.4; }
   .manuscript-status.is-composing::before { animation: none; border-top-color: var(--color-brass-dark); }
+  .dial-lcd-bar { animation: none; transform: scaleY(0.6); }
 }

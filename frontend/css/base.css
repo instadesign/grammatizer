@@ -138,6 +138,26 @@ a {
   -webkit-overflow-scrolling: touch;
 }
 
+/* Sits in normal document flow after whichever screen is visible -- reachable by
+   scrolling down, never fixed/overlapping content. */
+.app-footer {
+  max-width: 640px;
+  margin: 0 auto;
+  padding: var(--space-6) var(--space-4) var(--space-8);
+  text-align: center;
+  font-size: var(--text-xs);
+  color: var(--text-secondary, #8a8272);
+}
+.app-footer a {
+  color: inherit;
+  text-decoration: underline;
+  text-underline-offset: 2px;
+}
+.app-footer a:hover,
+.app-footer a:focus-visible {
+  color: var(--color-brass-dark);
+}
+
 /* Quiet build tag, present on every screen -- bump the number by hand each iteration. */
 .build-tag {
   position: fixed;

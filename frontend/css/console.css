@@ -264,6 +264,23 @@ input[type="range"]:focus-visible::-webkit-slider-thumb {
   margin-bottom: var(--space-5);
 }
 
+.connect-inspo {
+  font-size: var(--text-sm);
+  color: var(--text-secondary);
+  border-top: var(--border-hairline);
+  padding-top: var(--space-4);
+  margin: var(--space-5) 0 0;
+}
+.connect-inspo a {
+  color: var(--color-brass-dark);
+  text-decoration: underline;
+  text-underline-offset: 2px;
+}
+.connect-inspo a:hover,
+.connect-inspo a:focus-visible {
+  color: var(--color-brass);
+}
+
 .engine-choice {
   border: 0;
   padding: 0;
@@ -305,6 +322,19 @@ input[type="range"]:focus-visible::-webkit-slider-thumb {
   grid-column: 2 / 4; grid-row: 2;
   font-size: var(--text-sm);
   color: var(--text-secondary);
+}
+
+.engine-card-link {
+  display: inline-block;
+  margin-top: var(--space-1);
+  font-size: var(--text-xs);
+  color: var(--color-brass-dark);
+  text-decoration: underline;
+  text-underline-offset: 2px;
+}
+.engine-card-link:hover,
+.engine-card-link:focus-visible {
+  color: var(--color-brass);
 }
 
 .connect-error, .console-error {
@@ -496,10 +526,49 @@ input[type="range"]:focus-visible::-webkit-slider-thumb {
   color: var(--color-slate);
 }
 
+/* A small lo-fi LCD readout above the organ stops: idles as a made-up "the machine
+   is ticking over" equalizer when nothing's changing, and swaps to the real
+   dial-change progress bar the instant a dial moves. Never an empty gap either way. */
+.dial-lcd {
+  position: relative;
+  height: 40px;
+  margin-bottom: var(--space-5);
+  padding: 0 var(--space-3);
+  display: flex;
+  align-items: center;
+  background: var(--color-iron);
+  border-radius: 4px;
+  box-shadow: var(--shadow-inset);
+}
+
+.dial-lcd-idle {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 4px;
+  width: 100%;
+  height: 100%;
+}
+.dial-lcd-bar {
+  width: 4px;
+  height: 60%;
+  border-radius: 1px;
+  background: linear-gradient(180deg, var(--color-valve-glow), var(--color-brass-dark));
+  transform-origin: bottom;
+  opacity: 0.75;
+  animation: dial-lcd-bounce 1.1s ease-in-out infinite;
+}
+.dial-lcd-bar:nth-child(1) { animation-delay: -1.0s; }
+.dial-lcd-bar:nth-child(2) { animation-delay: -0.7s; }
+.dial-lcd-bar:nth-child(3) { animation-delay: -0.4s; }
+.dial-lcd-bar:nth-child(4) { animation-delay: -0.9s; }
+.dial-lcd-bar:nth-child(5) { animation-delay: -0.2s; }
+.dial-lcd-bar:nth-child(6) { animation-delay: -0.55s; }
+
 /* Shows the real, composer.js-computed wait between moving a dial and its effect
    landing (structurally two beats out — see console.js) rather than hiding it. */
 .dial-progress {
-  margin-bottom: var(--space-5);
+  width: 100%;
 }
 .dial-progress-label {
   display: block;
@@ -558,8 +627,66 @@ input[type="range"]:focus-visible::-webkit-slider-thumb {
 .dial-group-pedals[data-inert="true"] .pedal {
   opacity: 0.55;
 }
-.dial-group-stops[data-inert="true"] .dial {
+.dial-group-stops[data-inert="true"] .stop-toggle {
   opacity: 0.55;
+  pointer-events: none;
+}
+
+/* Organ stops: discrete pull-toggles, one per named technique, grouped under each
+   quality -- a real organ stop is a binary pull, not a dial, and naming the specific
+   technique gives both the reader and the model something concrete to engage with. */
+.stop-quality {
+  margin-bottom: var(--space-4);
+}
+.stop-quality:last-child {
+  margin-bottom: 0;
+}
+.stop-quality-label {
+  font-family: var(--font-mechanical);
+  font-size: var(--text-xs);
+  color: var(--text-secondary);
+  margin-bottom: var(--space-2);
+}
+.stop-row {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--space-2);
+}
+.stop-toggle {
+  position: relative;
+  cursor: pointer;
+}
+.stop-toggle input {
+  position: absolute;
+  opacity: 0;
+  width: 1px;
+  height: 1px;
+  pointer-events: none;
+}
+.stop-toggle span {
+  display: inline-block;
+  padding: var(--space-1) var(--space-2);
+  font-family: var(--font-mechanical);
+  font-size: var(--text-xs);
+  color: var(--text-secondary);
+  background: var(--bg-panel);
+  border: var(--border-hairline);
+  border-radius: var(--radius-rivet);
+  transition: background var(--duration-quick) var(--ease-standard),
+              border-color var(--duration-quick) var(--ease-standard),
+              color var(--duration-quick) var(--ease-standard);
+}
+.stop-toggle:hover span {
+  border-color: var(--color-brass-dark);
+}
+.stop-toggle input:checked + span {
+  background: linear-gradient(180deg, var(--color-valve-glow), var(--color-brass-dark));
+  border-color: var(--color-brass);
+  color: var(--color-iron);
+}
+.stop-toggle input:focus-visible + span {
+  outline: 2px solid var(--color-brass);
+  outline-offset: 1px;
 }
 
 .safety-governor {

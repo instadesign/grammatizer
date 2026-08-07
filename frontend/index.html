@@ -21,6 +21,7 @@
     <p class="eyebrow">Machine Internals</p>
     <h1 class="connect-title">The Great Automatic<br>Grammatizator</h1>
     <p class="connect-subtitle">Choose the engine that will drive the machine, and give it a key.</p>
+    <p class="connect-inspo">Named for and inspired by Roald Dahl's 1953 short story of the same name, about a machine built to churn out fiction on demand. This app takes that premise semi-literally: an LLM standing in for Dahl's fifty thousand cogs and valves. <a href="https://en.wikipedia.org/wiki/The_Great_Automatic_Grammatizator" target="_blank" rel="noopener noreferrer">Read about the story</a> or <a href="https://www.penguin.co.uk/books/192016/the-great-automatic-grammatizator-a-roald-dahl-short-story-by-dahl-roald/9781405911153" target="_blank" rel="noopener noreferrer">get it from the publisher</a>.</p>
 
     <fieldset class="engine-choice" id="engine-choice">
       <legend class="visually-hidden">AI Engine</legend>
@@ -29,14 +30,18 @@
         <input type="radio" name="engine" value="gemini" checked>
         <span class="engine-card-name">Google Gemini</span>
         <span class="engine-card-tag">Default</span>
-        <span class="engine-card-desc">Sign in with any Google account at aistudio.google.com — no card, a genuinely free tier.</span>
+        <span class="engine-card-desc">Sign in with any Google account — no card, a genuinely free tier.
+          <a class="engine-card-link" href="https://aistudio.google.com/apikey" target="_blank" rel="noopener noreferrer">Get a free key at aistudio.google.com &rarr;</a>
+        </span>
       </label>
 
       <label class="engine-card" data-engine-card="groq">
         <input type="radio" name="engine" value="groq">
         <span class="engine-card-name">Groq</span>
         <span class="engine-card-tag">Turbo</span>
-        <span class="engine-card-desc">console.groq.com — free, no card. Serves Llama 3.3 on custom hardware, dramatically faster.</span>
+        <span class="engine-card-desc">Free, no card. Serves Llama 3.3 on custom hardware, dramatically faster.
+          <a class="engine-card-link" href="https://console.groq.com/keys" target="_blank" rel="noopener noreferrer">Get a free key at console.groq.com &rarr;</a>
+        </span>
       </label>
 
       <label class="engine-card" data-engine-card="claude">
@@ -50,14 +55,9 @@
     <label class="field" for="api-key-input" id="api-key-field">
       <span class="field-label">API Key</span>
       <input type="password" id="api-key-input" autocomplete="off" spellcheck="false" placeholder="Paste your key here">
-      <span class="field-hint" id="api-key-hint">Kept only for this browser session, sent only to your chosen engine. Never stored on our server.</span>
+      <span class="field-hint" id="api-key-hint">New here? Use the "Get a free key" link on the card above, sign in, create a key, then paste it here. Kept only for this browser session, sent only to your chosen engine. Never stored on our server.</span>
     </label>
     <p class="field-hint field-standalone-hint" id="claude-key-note" hidden>No key needed — the backup engine runs on a shared house key, limited to a strict daily quota. If it's exhausted, switch to Gemini or Groq with your own free key.</p>
-
-    <label class="field field-slider" for="creativity-input">
-      <span class="field-label">Creativity <output id="creativity-output">0.9</output></span>
-      <input type="range" id="creativity-input" min="0.1" max="1.5" step="0.1" value="0.9">
-    </label>
 
     <p class="connect-error" id="connect-error" role="alert" hidden></p>
 
@@ -274,34 +274,72 @@
     <section class="panel panel-dials" aria-labelledby="panel-dials-heading">
       <h2 class="panel-heading" id="panel-dials-heading">Continuous Adjusters</h2>
 
-      <div class="dial-progress" id="dial-progress" hidden aria-hidden="true">
-        <span class="dial-progress-label">Recalibrating…</span>
-        <div class="dial-progress-track"><div class="dial-progress-fill" id="dial-progress-fill"></div></div>
+      <div class="dial-lcd" id="dial-lcd" aria-hidden="true">
+        <div class="dial-lcd-idle" id="dial-lcd-idle">
+          <span class="dial-lcd-bar"></span>
+          <span class="dial-lcd-bar"></span>
+          <span class="dial-lcd-bar"></span>
+          <span class="dial-lcd-bar"></span>
+          <span class="dial-lcd-bar"></span>
+          <span class="dial-lcd-bar"></span>
+        </div>
+        <div class="dial-progress" id="dial-progress" hidden>
+          <span class="dial-progress-label">Recalibrating…</span>
+          <div class="dial-progress-track"><div class="dial-progress-fill" id="dial-progress-fill"></div></div>
+        </div>
       </div>
 
       <div class="dial-group dial-group-stops">
         <p class="dial-group-label">Organ Stops</p>
-        <div class="dial-row">
-          <label class="dial" for="dial-tension">
-            <span class="dial-name">Tension</span>
-            <input type="range" id="dial-tension" data-dial="tension" min="0" max="10" value="4">
-          </label>
-          <label class="dial" for="dial-surprise">
-            <span class="dial-name">Surprise</span>
-            <input type="range" id="dial-surprise" data-dial="surprise" min="0" max="10" value="4">
-          </label>
-          <label class="dial" for="dial-humour">
-            <span class="dial-name">Humour</span>
-            <input type="range" id="dial-humour" data-dial="humour" min="0" max="10" value="6">
-          </label>
-          <label class="dial" for="dial-pathos">
-            <span class="dial-name">Pathos</span>
-            <input type="range" id="dial-pathos" data-dial="pathos" min="0" max="10" value="3">
-          </label>
-          <label class="dial" for="dial-mystery">
-            <span class="dial-name">Mystery</span>
-            <input type="range" id="dial-mystery" data-dial="mystery" min="0" max="10" value="3">
-          </label>
+
+        <div class="stop-quality">
+          <p class="stop-quality-label">Tension</p>
+          <div class="stop-row">
+            <label class="stop-toggle"><input type="checkbox" data-stop="ticking_clock"><span>Ticking Clock</span></label>
+            <label class="stop-toggle"><input type="checkbox" data-stop="physical_danger"><span>Physical Danger</span></label>
+            <label class="stop-toggle"><input type="checkbox" data-stop="withheld_information"><span>Withheld Information</span></label>
+            <label class="stop-toggle"><input type="checkbox" data-stop="escalating_stakes"><span>Escalating Stakes</span></label>
+          </div>
+        </div>
+
+        <div class="stop-quality">
+          <p class="stop-quality-label">Surprise</p>
+          <div class="stop-row">
+            <label class="stop-toggle"><input type="checkbox" data-stop="sudden_reversal"><span>Sudden Reversal</span></label>
+            <label class="stop-toggle"><input type="checkbox" data-stop="hidden_identity"><span>Hidden Identity</span></label>
+            <label class="stop-toggle"><input type="checkbox" data-stop="left_field_detail"><span>Left-Field Detail</span></label>
+            <label class="stop-toggle"><input type="checkbox" data-stop="broken_expectation"><span>Broken Expectation</span></label>
+          </div>
+        </div>
+
+        <div class="stop-quality">
+          <p class="stop-quality-label">Humour</p>
+          <div class="stop-row">
+            <label class="stop-toggle"><input type="checkbox" data-stop="deadpan_understatement"><span>Deadpan Understatement</span></label>
+            <label class="stop-toggle"><input type="checkbox" data-stop="slapstick_mishap"><span>Slapstick Mishap</span></label>
+            <label class="stop-toggle"><input type="checkbox" data-stop="wordplay_wit"><span>Wordplay &amp; Wit</span></label>
+            <label class="stop-toggle"><input type="checkbox" data-stop="absurd_juxtaposition"><span>Absurd Juxtaposition</span></label>
+          </div>
+        </div>
+
+        <div class="stop-quality">
+          <p class="stop-quality-label">Pathos</p>
+          <div class="stop-row">
+            <label class="stop-toggle"><input type="checkbox" data-stop="vulnerable_confession"><span>Vulnerable Confession</span></label>
+            <label class="stop-toggle"><input type="checkbox" data-stop="quiet_loss"><span>Quiet Loss</span></label>
+            <label class="stop-toggle"><input type="checkbox" data-stop="unspoken_longing"><span>Unspoken Longing</span></label>
+            <label class="stop-toggle"><input type="checkbox" data-stop="small_kindness"><span>Small Kindness</span></label>
+          </div>
+        </div>
+
+        <div class="stop-quality">
+          <p class="stop-quality-label">Mystery</p>
+          <div class="stop-row">
+            <label class="stop-toggle"><input type="checkbox" data-stop="unanswered_question"><span>Unanswered Question</span></label>
+            <label class="stop-toggle"><input type="checkbox" data-stop="strange_detail"><span>Strange Detail</span></label>
+            <label class="stop-toggle"><input type="checkbox" data-stop="unreliable_narration"><span>Unreliable Narration</span></label>
+            <label class="stop-toggle"><input type="checkbox" data-stop="ominous_omen"><span>Ominous Omen</span></label>
+          </div>
         </div>
       </div>
 
@@ -333,7 +371,13 @@
 
 <div class="toast" id="toast" role="status" aria-live="polite" hidden></div>
 
-<p class="build-tag" id="build-tag" aria-hidden="true">Beta v0.15</p>
+<footer class="app-footer">
+  Inspired by Roald Dahl's short story <em>The Great Automatic Grammatizator</em> (1953) —
+  <a href="https://en.wikipedia.org/wiki/The_Great_Automatic_Grammatizator" target="_blank" rel="noopener noreferrer">about the story</a> ·
+  <a href="https://www.penguin.co.uk/books/192016/the-great-automatic-grammatizator-a-roald-dahl-short-story-by-dahl-roald/9781405911153" target="_blank" rel="noopener noreferrer">read it</a>
+</footer>
+
+<p class="build-tag" id="build-tag" aria-hidden="true">Beta v0.16</p>
 
 <script src="js/state.js"></script>
 <script src="js/api.js"></script>

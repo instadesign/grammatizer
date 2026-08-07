@@ -49,15 +49,15 @@ Grammatizer.screenIgnition = (function () {
     els.log.innerHTML = "";
     els.form.hidden = true;
 
-    const cursor = document.createElement("span");
-    cursor.className = "boot-cursor";
-
     for (const line of BOOT_LINES) {
       await typeLine(line);
       els.log.appendChild(document.createTextNode(" "));
     }
-    els.log.appendChild(cursor);
 
+    // No lingering cursor left on the log: once the form appears, the focused
+    // name field's own (already brass/amber-styled, see ignition.css) caret is
+    // the one blinking cursor on screen -- exactly where input is actually needed,
+    // instead of a second one stranded on the message above it.
     els.form.hidden = false;
     els.nameInput.focus();
   }

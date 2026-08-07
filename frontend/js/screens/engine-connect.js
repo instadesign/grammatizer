@@ -1,11 +1,17 @@
-/* Screen 1 — pick an engine, paste a key, set creativity. No client-side key
-   validation call (would double API cost for no real benefit) — proceed optimistically;
-   if the first real generation comes back 401, the console routes back here with the
-   error shown inline. */
+/* Screen 1 — pick an engine, paste a key. No client-side key validation call (would
+   double API cost for no real benefit) — proceed optimistically; if the first real
+   generation comes back 401, the console routes back here with the error shown inline.
+
+   Creativity used to be a user-facing slider; it's now a fixed value (see
+   DEFAULT_TEMPERATURE below) -- one fewer decision for a first-time operator to make,
+   and 0.9 already covers the sweet spot between coherent and surprising for every
+   engine this app supports. */
 
 window.Grammatizer = window.Grammatizer || {};
 
 Grammatizer.screenConnect = (function () {
+  const DEFAULT_TEMPERATURE = 0.9;
+
   let els = {};
 
   function init() {
@@ -14,15 +20,9 @@ Grammatizer.screenConnect = (function () {
       apiKeyField: document.getElementById("api-key-field"),
       apiKeyInput: document.getElementById("api-key-input"),
       claudeKeyNote: document.getElementById("claude-key-note"),
-      creativityInput: document.getElementById("creativity-input"),
-      creativityOutput: document.getElementById("creativity-output"),
       error: document.getElementById("connect-error"),
       connectBtn: document.getElementById("btn-connect"),
     };
-
-    els.creativityInput.addEventListener("input", () => {
-      els.creativityOutput.textContent = els.creativityInput.value;
-    });
 
     els.root.querySelectorAll('input[name="engine"]').forEach((radio) => {
       radio.addEventListener("change", syncApiKeyVisibility);
@@ -54,10 +54,6 @@ Grammatizer.screenConnect = (function () {
       const radio = els.root.querySelector(`input[name="engine"][value="${profile.engine}"]`);
       if (radio) radio.checked = true;
     }
-    if (typeof profile.temperature === "number") {
-      els.creativityInput.value = String(profile.temperature);
-      els.creativityOutput.textContent = String(profile.temperature);
-    }
   }
 
   function showError(message) {
@@ -74,14 +70,13 @@ Grammatizer.screenConnect = (function () {
     clearError();
     const engine = selectedEngine();
     const apiKey = engine === "claude" ? "" : els.apiKeyInput.value.trim();
-    const temperature = parseFloat(els.creativityInput.value);
 
     if (engine !== "claude" && !apiKey) {
       showError("Paste an API key, or switch to the keyless Claude backup engine.");
       return;
     }
 
-    Grammatizer.state.saveProfile({ engine, temperature });
+    Grammatizer.state.saveProfile({ engine, temperature: DEFAULT_TEMPERATURE });
     Grammatizer.state.setApiKey(apiKey);
 
     Grammatizer.router.afterConnect();

@@ -43,8 +43,8 @@ Grammatizer.composer = (function () {
    * @param {object} opts.setup - locked setup fields (engine, api_key, temperature,
    *   category, theme_setting, style_voice, ending, target_words, custom_elements,
    *   characters, pov, tense, setting_era, audience, structure, user_name, agency_name)
-   * @param {() => object} opts.getDials - returns current {tension, surprise, humour,
-   *   pathos, mystery, passion, intensity}, read fresh on every request
+   * @param {() => object} opts.getDials - returns current {passion, intensity,
+   *   engaged_stops: string[]}, read fresh on every request
    * @param {(fullText: string) => void} opts.onTextGrow
    * @param {(wordCount: number) => void} opts.onWordCount
    * @param {(fullText: string) => void} opts.onConcluded

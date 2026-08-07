@@ -54,6 +54,7 @@ Grammatizer.screenConsole = (function () {
       manuscriptStatus: document.getElementById("manuscript-status"),
       dialGroupStops: document.querySelector(".dial-group-stops"),
       dialGroupPedals: document.querySelector(".dial-group-pedals"),
+      dialLcdIdle: document.getElementById("dial-lcd-idle"),
       dialProgress: document.getElementById("dial-progress"),
       dialProgressFill: document.getElementById("dial-progress-fill"),
       pullLeverBtn: document.getElementById("btn-pull-lever"),
@@ -65,6 +66,8 @@ Grammatizer.screenConsole = (function () {
       consoleError: document.getElementById("console-error"),
     };
 
+    randomizeSetupFields();
+
     els.wordageInput.addEventListener("input", syncWordageOutput);
     els.pullLeverBtn.addEventListener("click", handlePullLever);
     els.pauseBtn.addEventListener("click", handleTogglePause);
@@ -73,7 +76,7 @@ Grammatizer.screenConsole = (function () {
     els.bindArchiveBtn.addEventListener("click", handleBindArchive);
     els.forgetMeBtn.addEventListener("click", handleForgetMe);
 
-    document.querySelectorAll(".panel-dials [data-dial]").forEach((el) => {
+    document.querySelectorAll(".panel-dials [data-dial], .panel-dials [data-stop]").forEach((el) => {
       el.addEventListener("input", () => {
         if (composerController && composing) composerController.notifyDialsChanged();
       });
@@ -86,6 +89,17 @@ Grammatizer.screenConsole = (function () {
     els.wordageOutput.textContent = els.wordageInput.value;
   }
 
+  // A fresh page load gets a different starting combination of pre-selectors every
+  // time, rather than always landing on each dropdown's first hardcoded option --
+  // the machine looks freshly wound, not stuck on one setting. Only the dropdown
+  // pre-selectors (Category, Theme, Style, Ending, Cast, POV, ...); the wordage
+  // slider and the free-text custom-elements field are deliberately left alone.
+  function randomizeSetupFields() {
+    els.setupBank.querySelectorAll("select[data-field]").forEach((select) => {
+      select.selectedIndex = Math.floor(Math.random() * select.options.length);
+    });
+  }
+
   function collectSetupFields() {
     const data = {};
     els.setupBank.querySelectorAll("[data-field]").forEach((el) => {
@@ -94,11 +108,16 @@ Grammatizer.screenConsole = (function () {
     return data;
   }
 
+  // Foot pedals (data-dial) stay continuous 0-10; organ stops (data-stop) are
+  // discrete pulls -- collected as the flat list of engaged technique IDs the
+  // backend's ORGAN_STOP_TECHNIQUES registry expects (see prompts.py).
   function collectDials() {
     const data = {};
     document.querySelectorAll(".panel-dials [data-dial]").forEach((el) => {
       data[el.dataset.dial] = Number(el.value);
     });
+    data.engaged_stops = Array.from(document.querySelectorAll(".panel-dials [data-stop]:checked"))
+      .map((el) => el.dataset.stop);
     return data;
   }
 
@@ -110,7 +129,7 @@ Grammatizer.screenConsole = (function () {
   function setDialsInert(inert) {
     els.dialGroupStops.dataset.inert = inert ? "true" : "false";
     els.dialGroupPedals.dataset.inert = inert ? "true" : "false";
-    document.querySelectorAll(".panel-dials [data-dial]").forEach((el) => { el.disabled = inert; });
+    document.querySelectorAll(".panel-dials [data-dial], .panel-dials [data-stop]").forEach((el) => { el.disabled = inert; });
   }
 
   function clearError() {
@@ -139,6 +158,7 @@ Grammatizer.screenConsole = (function () {
   // earliest beat that can reflect it is two beats out. Rather than hide that, show
   // it: a small gauge that fills over composer.js's own real estimate of the wait.
   function showDialsPending(estimatedMs) {
+    els.dialLcdIdle.hidden = true;
     els.dialProgress.hidden = false;
     els.dialProgressFill.style.transition = "none";
     els.dialProgressFill.style.width = "0%";
@@ -151,6 +171,7 @@ Grammatizer.screenConsole = (function () {
     els.dialProgress.hidden = true;
     els.dialProgressFill.style.transition = "none";
     els.dialProgressFill.style.width = "0%";
+    els.dialLcdIdle.hidden = false;
   }
 
   function resetManuscriptDom() {

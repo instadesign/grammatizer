@@ -31,14 +31,56 @@ SAFETY_GOVERNOR = (
 )
 
 _DIAL_LABELS = (
-    ("tension", "Tension"),
-    ("surprise", "Surprise"),
-    ("humour", "Humour"),
-    ("pathos", "Pathos"),
-    ("mystery", "Mystery"),
     ("passion", "Passion (romance/innuendo -- see Safety Governor)"),
     ("intensity", "Intensity"),
 )
+
+# Organ stops: discrete on/off technique pulls, not dials -- a real organ stop is a
+# binary pull, unlike the continuous foot pedals above. Naming the specific technique
+# ("Ticking Clock" vs. a bare "Tension: 7/10") gives the model something concrete to
+# act on rather than a fuzzy number, and swapping which stops are pulled produces a
+# sharper, more legible change in the prose than nudging a slider used to.
+ORGAN_STOP_TECHNIQUES = {
+    "Tension": (
+        ("ticking_clock", "Ticking Clock"),
+        ("physical_danger", "Physical Danger"),
+        ("withheld_information", "Withheld Information"),
+        ("escalating_stakes", "Escalating Stakes"),
+    ),
+    "Surprise": (
+        ("sudden_reversal", "Sudden Reversal"),
+        ("hidden_identity", "Hidden Identity"),
+        ("left_field_detail", "Left-Field Detail"),
+        ("broken_expectation", "Broken Expectation"),
+    ),
+    "Humour": (
+        ("deadpan_understatement", "Deadpan Understatement"),
+        ("slapstick_mishap", "Slapstick Mishap"),
+        ("wordplay_wit", "Wordplay & Wit"),
+        ("absurd_juxtaposition", "Absurd Juxtaposition"),
+    ),
+    "Pathos": (
+        ("vulnerable_confession", "Vulnerable Confession"),
+        ("quiet_loss", "Quiet Loss"),
+        ("unspoken_longing", "Unspoken Longing"),
+        ("small_kindness", "Small Kindness"),
+    ),
+    "Mystery": (
+        ("unanswered_question", "Unanswered Question"),
+        ("strange_detail", "Strange Detail"),
+        ("unreliable_narration", "Unreliable Narration"),
+        ("ominous_omen", "Ominous Omen"),
+    ),
+}
+
+
+def _stop_techniques_block(engaged_stops) -> str:
+    engaged = set(engaged_stops)
+    lines = []
+    for quality, techniques in ORGAN_STOP_TECHNIQUES.items():
+        active = [label for stop_id, label in techniques if stop_id in engaged]
+        lines.append(f"- {quality}: " + (", ".join(active) if active else "(not engaged this line)"))
+    return "\n".join(lines)
 
 # Tiers, in order of increasing urgency, keyed to words remaining against the target.
 NEAR_END_WORDS = 55   # about 2-3 lines left: start steering toward a close
@@ -202,12 +244,12 @@ def build_beat_prompt(req, remaining_words: int) -> str:
         f"\n\nSTORY SO FAR:\n{req.story_so_far}" if req.story_so_far.strip() else ""
     )
 
-    # Deliberate ordering: the story-so-far goes BEFORE the dial settings and the
+    # Deliberate ordering: the story-so-far goes BEFORE the dial/stop settings and the
     # continuation instruction, not after. A model weighs what sits closest to the
     # point it starts generating most heavily -- putting the (often long, and
     # tonally established) prose last let its momentum quietly outweigh a dial that
     # had just been turned down, e.g. Passion maxed then reset to low still reading
-    # saucy hundreds of words later. Dial settings now sit right next to generation.
+    # saucy hundreds of words later. Dial/stop settings now sit right next to generation.
     return f"""{identity}
 
 FIXED SETUP (do not deviate from these for the whole story):
@@ -219,11 +261,14 @@ FIXED SETUP (do not deviate from these for the whole story):
 
 {DIALOGUE_PACING_GUIDELINE}{story_so_far_block}
 
-CURRENT DIAL SETTINGS -- read fresh for every line, and may be quite different from
-the tone of the prose above. These are a live instruction, not a description of what
-was already written: if a dial has shifted since the last line (e.g. Passion turned
-down), actively shift the register THIS line to match the new value -- don't just
-continue the prior tone on momentum.
+ORGAN STOPS ENGAGED THIS LINE -- read fresh for every line, and may be quite
+different from the prose above. Each is a discrete pulled/pushed switch, not a
+dial: weave in whichever named techniques are engaged for a quality; a quality
+with nothing engaged should barely feature in this line at all, even if it was
+prominent a moment ago -- don't continue it on momentum.
+{_stop_techniques_block(req.engaged_stops)}
+
+FOOT PEDALS (continuous, 0-10) -- also read fresh for every line:
 {dial_lines}
 
 {_continuation_instruction(req.story_so_far, remaining_words, req.target_words)}

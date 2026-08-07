@@ -3,7 +3,7 @@ exactly the options presented in the frontend's setup/auxiliary/dial controls â€
 control taxonomy in the project plan for where each one comes from (Dahl's text, or a
 deliberate, flagged addition)."""
 
-from typing import Literal, Optional
+from typing import List, Literal, Optional
 
 from pydantic import BaseModel, Field
 
@@ -65,12 +65,15 @@ class BeatRequest(BaseModel):
     audience: Audience
     structure: Structure
 
-    # Continuous dials, 0-10
-    tension: int = Field(ge=0, le=10)
-    surprise: int = Field(ge=0, le=10)
-    humour: int = Field(ge=0, le=10)
-    pathos: int = Field(ge=0, le=10)
-    mystery: int = Field(ge=0, le=10)
+    # Organ stops: discrete on/off technique pulls, not dials -- a real organ stop is
+    # a binary pull, not a continuous knob. Sends only the IDs currently pulled; the
+    # registry of valid IDs (grouped by quality) lives in prompts.py, the only place
+    # that needs to know what each one means. An unrecognized ID here is just ignored,
+    # not rejected -- see build_beat_prompt.
+    engaged_stops: List[str] = Field(default_factory=list, max_length=20)
+
+    # Foot pedals: still continuous, 0-10 -- these are worked by pressure, per Dahl's
+    # own text, unlike the organ stops above.
     passion: int = Field(ge=0, le=10)
     intensity: int = Field(ge=0, le=10)
 
