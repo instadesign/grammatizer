@@ -47,7 +47,7 @@ Grammatizer.api = (function () {
       if (err.name === "AbortError") {
         throw new ApiError("timeout", "The machine has jammed — no response in time.", 0);
       }
-      throw new ApiError("network_error", "Could not reach the machine.", 0);
+      throw new ApiError("network_error", "The machine isn't answering — check your connection and try again.", 0);
     } finally {
       clearTimeout(timer);
     }

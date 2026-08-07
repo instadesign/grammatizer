@@ -679,7 +679,7 @@ input[type="range"]:focus-visible::-webkit-slider-thumb {
   display: grid;
   gap: var(--space-4);
 }
-.dial, .pedal {
+.pedal {
   display: block;
 }
 .dial-name {
@@ -818,13 +818,35 @@ input[type="range"]:focus-visible::-webkit-slider-thumb {
   .console-main {
     grid-template-columns: 1fr;
   }
+
+  /* On desktop the drawer is a fixed-width absolute overlay that only ever
+     covers a sliver of the manuscript column, leaving the dials panel's own
+     grid column untouched. Below this width .console-main collapses to one
+     column, so manuscript and dials stack vertically -- but the drawer's
+     inset:0 still stretched it to match .console-main's FULL stacked height
+     (manuscript + dials combined), silently covering the dials panel entirely
+     until the lever was pulled. Confirmed live via an iframe viewport test
+     (window resize doesn't work in this sandbox): elementFromPoint at the
+     Continuous Adjusters heading's own coordinates returned .panel-setup, not
+     the dials panel underneath it -- not a hypothetical, an actual dead zone.
+     Fix: drop the absolute-overlay mechanism here entirely and let the drawer
+     take its own place in normal flow instead, so it only ever occupies its
+     own content's height and the dials panel sits reachable right after it. */
+  .setup-drawer-clip {
+    position: static;
+    overflow: visible;
+  }
   .setup-drawer {
+    position: static;
     width: 100%;
+    transform: none !important;
+  }
+  .setup-drawer.is-locked {
+    display: none;
   }
   .manuscript-placeholder {
-    /* The drawer covers the whole card's width here, so nothing in it is visible
-       anyway until it's locked away -- reset the offset rather than leave a
-       340px margin that would just overflow this width instead. */
+    /* The drawer sits above the manuscript in normal flow here (not overlaying
+       it), so there's nothing to clear -- reset the desktop offset. */
     margin-left: 0;
   }
 }

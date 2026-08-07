@@ -96,6 +96,16 @@ Grammatizer.screenConsole = (function () {
     els.wordageOutput.textContent = els.wordageInput.value;
   }
 
+  // A rough live estimate for the status line only -- onWordCount (from the actual
+  // API response) stays the source of truth for lastRun.wordCount, used by Stop/
+  // PDF export/etc. This just stops the counter sitting frozen for the several
+  // seconds a beat takes to type out, which read as less "live" than the prose
+  // actually revealing beside it.
+  function countWords(text) {
+    const trimmed = text.trim();
+    return trimmed ? trimmed.split(/\s+/).length : 0;
+  }
+
   // A fresh page load gets a different starting combination of pre-selectors every
   // time, rather than always landing on each dropdown's first hardcoded option --
   // the machine looks freshly wound, not stuck on one setting. Only the dropdown
@@ -279,12 +289,12 @@ Grammatizer.screenConsole = (function () {
       onTextGrow: (text) => {
         lastRun.storyText = text;
         renderManuscriptText(text);
+        if (!composerController.isPaused()) {
+          setStatus("composing", `The machine is writing... ${countWords(text)} / ${setup.target_words} words`);
+        }
       },
       onWordCount: (n) => {
         lastRun.wordCount = n;
-        if (!composerController.isPaused()) {
-          setStatus("composing", `The machine is writing... ${n} / ${setup.target_words} words`);
-        }
       },
       onConcluded: (fullText) => handleConcluded(fullText),
       onError: (err) => handleComposeError(err),
@@ -433,7 +443,7 @@ Grammatizer.screenConsole = (function () {
       a.remove();
       setTimeout(() => URL.revokeObjectURL(url), 1000);
     } catch (err) {
-      showError((err && err.message) || "Could not bind the manuscript.");
+      showError((err && err.message) || "The binding press has jammed — try again.");
     } finally {
       els.bindArchiveBtn.disabled = false;
       els.bindArchiveBtn.textContent = prevLabel;
