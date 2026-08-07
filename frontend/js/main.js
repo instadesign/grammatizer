@@ -64,9 +64,17 @@ Grammatizer.router = (function () {
     playTransition().then(() => showOnly("console"));
   }
 
-  // Called by console (or on a rejected key) to return to screen 1 with an inline error.
+  // Called by console (or on a rejected key) to return to screen 1 with an inline
+  // error. This used to be a hard instant swap -- no transition at all -- which
+  // read as more disruptive than the underlying problem (a bad key, nothing about
+  // the manuscript setup is actually lost) warranted. A quick fade softens the
+  // jump-cut without touching the ignition->console handoff's own choreographed
+  // transition elsewhere in this file.
   function backToConnect(message) {
     showOnly("connect");
+    if (!Grammatizer.state.prefersReducedMotion) {
+      screens.connect.animate([{ opacity: 0 }, { opacity: 1 }], { duration: 220, easing: "ease-out" });
+    }
     if (message) Grammatizer.screenConnect.showInlineError(message);
   }
 

@@ -21,7 +21,9 @@
   --color-valve-glow-soft: rgba(217, 138, 43, 0.35);
 
   --color-rust: #a63d40;
-  --color-slate: #6b6459;
+  --color-slate: #655e53; /* darkened from #6b6459 -- that was 4.48:1 on --color-parchment,
+    just under WCAG AA's 4.5:1 for body text (e.g. the connect screen's intro paragraph);
+    this clears it at ~4.9:1 while staying visually almost identical */
   --color-slate-light: #948c7d;
 
   --color-paper-white: #f7f1e1;
