@@ -487,13 +487,19 @@ input[type="range"]:focus-visible::-webkit-slider-thumb {
   min-height: 420px;
 }
 
+/* A bounded box, not an infinitely-growing one: text fills the visible area on its
+   own first, and only once it actually overflows does the box itself scroll (see
+   followWriteHead() in console.js) -- the reader's eye stays in one place on screen
+   instead of the whole page creeping downward as the manuscript grows. */
 .manuscript-paper {
   background: var(--bg-panel);
   border: var(--border-hairline);
   border-radius: var(--radius-rivet);
   box-shadow: var(--shadow-panel);
   padding: var(--space-6);
-  min-height: 420px;
+  height: min(620px, 65vh);
+  overflow-y: auto;
+  overscroll-behavior: contain;
   clip-path: polygon(
     0% 1.5%, 3% 0%, 9% 1%, 15% 0.2%, 22% 1.2%, 30% 0%, 38% 1%, 46% 0.3%,
     54% 1.1%, 62% 0%, 70% 1%, 78% 0.2%, 86% 1.2%, 93% 0%, 100% 1.5%,

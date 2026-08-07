@@ -183,12 +183,20 @@ DIALOGUE_PACING_GUIDELINE = (
 # writing one complete, similarly-sized declarative sentence every single time --
 # after enough beats it reads as a flat list of same-length statements rather than
 # prose with any rhythm. This is the direct countermeasure, not a hypothetical.
+# Explicit word-count anchors (3-4 vs. 30+), not just "vary it," because a vague
+# instruction wasn't enough on its own -- and since a 30-word sentence physically
+# can't fit inside one ~120-character beat, this only works if it's explicit that
+# ending a beat mid-clause (to be picked up, not restarted, next beat) is expected.
 RHYTHM_VARIETY_GUIDELINE = (
-    "Vary sentence length and shape from line to line -- don't let every beat land as "
-    "a similarly-sized, complete declarative sentence. Some lines should be short and "
-    "blunt; others can run on with a trailing clause, open mid-action, end on a "
-    "fragment, or lead with something other than the subject. A run of same-length, "
-    "same-shape lines reads as a list, not a story."
+    "Vary sentence length aggressively across the piece -- a real mixture, not a "
+    "gentle one: some sentences just 3-4 words, blunt and complete in themselves; "
+    "others sprawling past 30 words, piling on clauses and asides before they finally "
+    "resolve. A beat is capped at ~120 characters, so a long sentence will not fit in "
+    "a single beat -- that's expected. Let it run on and end the beat mid-clause "
+    "rather than forcing a full stop, then continue that same sentence in the next "
+    "beat (never restart or recap it). A short sentence, by contrast, should end "
+    "complete within its own beat. Don't let every beat read as one tidy, "
+    "self-contained, similarly-sized sentence -- that reads as a list, not a story."
 )
 
 

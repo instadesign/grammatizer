@@ -16,27 +16,30 @@ Grammatizer.screenConsole = (function () {
   let composing = false;
   let lastRun = null; // { setup, storyText, wordCount } — kept for PDF export after conclusion
 
-  // Follows the write-head as the manuscript grows, like a terminal or chat log --
-  // but only while the reader hasn't deliberately scrolled away. Re-engages on its
-  // own if they scroll back down, rather than needing an explicit "resume" control.
+  // The manuscript paper is its own bounded, internally-scrolling box (not the whole
+  // page) -- text fills it naturally like a real sheet of paper, and only once it
+  // actually overflows does the box itself start scrolling to keep the write-head
+  // (the newest character) in view, like a terminal or teleprompter. Suspends the
+  // moment the reader scrolls away on their own, and re-engages on its own if they
+  // scroll back down to the bottom themselves, rather than needing a "resume" control.
   let autoScrollEnabled = true;
-  const AUTO_SCROLL_THRESHOLD_PX = 96;
+  const AUTO_SCROLL_THRESHOLD_PX = 24;
 
   function isNearBottom() {
-    const doc = document.documentElement;
-    return doc.scrollHeight - (window.scrollY + window.innerHeight) <= AUTO_SCROLL_THRESHOLD_PX;
+    const el = els.manuscriptPaper;
+    return el.scrollHeight - (el.scrollTop + el.clientHeight) <= AUTO_SCROLL_THRESHOLD_PX;
   }
 
-  function handleWindowScroll() {
+  function handlePaperScroll() {
     autoScrollEnabled = isNearBottom();
   }
 
   function followWriteHead() {
     if (!autoScrollEnabled || els.manuscriptWriteHead.hidden) return;
-    const rect = els.manuscriptWriteHead.getBoundingClientRect();
-    if (rect.bottom > window.innerHeight || rect.top < 0) {
-      els.manuscriptWriteHead.scrollIntoView({ block: "end", behavior: "auto" });
-    }
+    // Before the content overflows the box this is a no-op (nothing to scroll --
+    // text just fills the visible area on its own); once it does overflow, this
+    // keeps pinning to the bottom every time a new character lands.
+    els.manuscriptPaper.scrollTop = els.manuscriptPaper.scrollHeight;
   }
 
   function init() {
@@ -45,6 +48,7 @@ Grammatizer.screenConsole = (function () {
       setupBank: document.getElementById("setup-bank"),
       wordageInput: document.getElementById("field-wordage"),
       wordageOutput: document.getElementById("wordage-output"),
+      manuscriptPaper: document.getElementById("manuscript-paper"),
       manuscriptPlaceholder: document.getElementById("manuscript-placeholder"),
       manuscriptLetterhead: document.getElementById("manuscript-letterhead"),
       manuscriptAgency: document.getElementById("manuscript-agency"),
@@ -85,7 +89,7 @@ Grammatizer.screenConsole = (function () {
       });
     });
 
-    window.addEventListener("scroll", handleWindowScroll, { passive: true });
+    els.manuscriptPaper.addEventListener("scroll", handlePaperScroll, { passive: true });
   }
 
   function syncWordageOutput() {
@@ -182,6 +186,7 @@ Grammatizer.screenConsole = (function () {
     els.manuscriptLetterhead.hidden = false;
     els.manuscriptTextContent.textContent = "";
     els.manuscriptWriteHead.hidden = false;
+    els.manuscriptPaper.scrollTop = 0;
   }
 
   function renderManuscriptText(text) {
@@ -363,6 +368,7 @@ Grammatizer.screenConsole = (function () {
     els.manuscriptPlaceholder.hidden = false;
     els.manuscriptLetterhead.hidden = true;
     els.manuscriptTextContent.textContent = "";
+    els.manuscriptPaper.scrollTop = 0;
   }
 
   async function handleBindArchive() {
