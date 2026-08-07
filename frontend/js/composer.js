@@ -19,7 +19,6 @@ Grammatizer.composer = (function () {
   // beat that can read the new values is N+2. onDialsPending/onDialsApplied below
   // let the UI show that real wait rather than leaving it unexplained.
   const DIALS_APPLY_LAG_BEATS = 2;
-  const SEED_BEAT_CHARS = 90; // seed estimate before any real beat has completed, in chars-worth of reveal time
 
   function getCharIntervalMs() {
     const raw = getComputedStyle(document.documentElement).getPropertyValue("--pace-char-ms");
@@ -34,10 +33,6 @@ Grammatizer.composer = (function () {
     return existing + (needsSpace ? " " : "") + beat;
   }
 
-  function now() {
-    return (typeof performance !== "undefined" && performance.now) ? performance.now() : Date.now();
-  }
-
   /**
    * @param {object} opts
    * @param {object} opts.setup - locked setup fields (engine, api_key, temperature,
@@ -49,9 +44,12 @@ Grammatizer.composer = (function () {
    * @param {(wordCount: number) => void} opts.onWordCount
    * @param {(fullText: string) => void} opts.onConcluded
    * @param {(err: Error) => void} opts.onError
-   * @param {(estimatedMs: number) => void} [opts.onDialsPending] - a dial moved; this
-   *   is the real estimated wait until a beat reflecting it starts revealing
-   * @param {() => void} [opts.onDialsApplied] - that beat has now started
+   * @param {() => void} [opts.onDialsPending] - a dial moved; the wait for it to land
+   *   is now two REAL events, not a guessed duration -- see onDialsHalfway/onDialsApplied
+   * @param {() => void} [opts.onDialsHalfway] - the one intervening beat (still on the
+   *   old values) has actually started revealing -- a genuine progress checkpoint
+   * @param {() => void} [opts.onDialsApplied] - the beat reflecting the change has
+   *   actually started revealing
    */
   const PAUSE_POLL_MS = 150;
 
@@ -59,16 +57,11 @@ Grammatizer.composer = (function () {
     const charIntervalMs = getCharIntervalMs();
     let cancelled = false;
     let paused = false;
-    let pauseStartedAt = 0;
     let storyText = "";
 
-    // Beat/generation tracking, purely for the dial-change ETA estimate above --
+    // Beat/generation tracking, purely for reporting genuine dial-change progress --
     // unrelated to the actual generation logic, which doesn't need any of this.
     let generation = 0;
-    let currentBeatCharsTotal = 0;
-    let currentBeatCharsShown = 0;
-    let currentBeatStartedAt = 0;
-    let lastBeatDurationMs = SEED_BEAT_CHARS * charIntervalMs; // derived from the live pace, not a stale hardcoded copy of it
     let pendingTargetGeneration = null;
 
     function fetchBeat(storySoFar) {
@@ -77,37 +70,27 @@ Grammatizer.composer = (function () {
       return Grammatizer.api.generateBeat(payload);
     }
 
-    function beginBeatReveal(charCount) {
+    function beginBeatReveal() {
       generation += 1;
-      currentBeatCharsTotal = charCount;
-      currentBeatCharsShown = 0;
-      currentBeatStartedAt = now();
-      if (pendingTargetGeneration !== null && generation >= pendingTargetGeneration) {
+      if (pendingTargetGeneration === null) return;
+      if (generation >= pendingTargetGeneration) {
         pendingTargetGeneration = null;
         if (opts.onDialsApplied) opts.onDialsApplied();
+      } else if (generation === pendingTargetGeneration - DIALS_APPLY_LAG_BEATS + 1 && opts.onDialsHalfway) {
+        // The one beat that stands between "the dial changed" and "the beat that
+        // reflects it" has just started revealing -- a real event, not a guess.
+        opts.onDialsHalfway();
       }
     }
 
-    function finishBeatReveal() {
-      const elapsed = now() - currentBeatStartedAt;
-      if (elapsed > 0) lastBeatDurationMs = elapsed;
-    }
-
     function notifyDialsChanged() {
-      if (generation === 0) return; // nothing revealing yet — no ETA to show
+      if (generation === 0) return; // nothing revealing yet — no wait to show
       pendingTargetGeneration = generation + DIALS_APPLY_LAG_BEATS;
-      const remainingCurrentBeatMs = Math.max(
-        0, (currentBeatCharsTotal - currentBeatCharsShown) * charIntervalMs
-      );
-      // One more full beat (whichever is already in flight) stands between here and
-      // the beat that reflects the change; lastBeatDurationMs is our best estimate
-      // of its length, since we won't know its real length until it arrives.
-      const estimatedMs = remainingCurrentBeatMs + lastBeatDurationMs;
-      if (opts.onDialsPending) opts.onDialsPending(estimatedMs);
+      if (opts.onDialsPending) opts.onDialsPending();
     }
 
     function revealBeat(fromText, toText) {
-      beginBeatReveal(toText.length - fromText.length);
+      beginBeatReveal();
       return new Promise((resolve) => {
         let i = fromText.length;
         function tick() {
@@ -115,12 +98,10 @@ Grammatizer.composer = (function () {
           if (paused) { setTimeout(tick, PAUSE_POLL_MS); return; }
           if (i >= toText.length) {
             storyText = toText;
-            finishBeatReveal();
             resolve();
             return;
           }
           i += 1;
-          currentBeatCharsShown = i - fromText.length;
           opts.onTextGrow(toText.slice(0, i));
           setTimeout(tick, charIntervalMs);
         }
@@ -130,20 +111,14 @@ Grammatizer.composer = (function () {
 
     // Pause freezes the reveal in place (the fetch-ahead already in flight, if any,
     // is left to finish quietly in the background rather than cancelled -- harmless,
-    // and means the next beat is ready the instant the reader resumes). The dial-ETA
-    // clock is paused too: currentBeatStartedAt is nudged forward by however long the
-    // pause lasted, so lastBeatDurationMs still reflects actual writing time, not
-    // writing time plus however long the reader stepped away.
+    // and means the next beat is ready the instant the reader resumes).
     function pause() {
       if (paused || cancelled) return;
       paused = true;
-      pauseStartedAt = now();
     }
 
     function resume() {
-      if (!paused) return;
       paused = false;
-      currentBeatStartedAt += now() - pauseStartedAt;
     }
 
     async function loop() {

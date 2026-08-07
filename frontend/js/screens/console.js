@@ -162,18 +162,43 @@ Grammatizer.screenConsole = (function () {
   // The gap between moving a dial and hearing its effect isn't cosmetic latency --
   // it's structural: the beat about to be revealed, and the one already fetch-ahead
   // in flight, both locked in their dial values before this change happened. The
-  // earliest beat that can reflect it is two beats out. Rather than hide that, show
-  // it: a small gauge that fills over composer.js's own real estimate of the wait.
-  function showDialsPending(estimatedMs) {
+  // earliest beat that can reflect it is two beats out. This used to animate the
+  // bar toward a GUESSED duration, which was wrong (usually short) the moment a
+  // fetch was slow or a rate-limit retry kicked in -- the bar would say "done"
+  // before the change had actually landed. It now advances in two real steps, each
+  // fired by composer.js only once the corresponding beat has genuinely started
+  // revealing (see onDialsPending/onDialsHalfway/onDialsApplied there) -- no
+  // estimate, no guess, matches the actual event stream.
+  const DIALS_STEP_MS = 260;
+
+  function animateDialsFillTo(percent) {
+    els.dialProgressFill.style.transition = `width ${DIALS_STEP_MS}ms ease-out`;
+    els.dialProgressFill.style.width = `${percent}%`;
+  }
+
+  function showDialsPending() {
     els.dialLcdIdle.hidden = true;
     els.dialProgress.hidden = false;
     els.dialProgressFill.style.transition = "none";
     els.dialProgressFill.style.width = "0%";
-    void els.dialProgressFill.offsetWidth; // force reflow so the fill transition below actually starts from 0
-    els.dialProgressFill.style.transition = `width ${Math.max(estimatedMs, 200)}ms linear`;
-    els.dialProgressFill.style.width = "100%";
+    void els.dialProgressFill.offsetWidth; // force reflow so the animate-in below actually starts from 0
+    animateDialsFillTo(20);
   }
 
+  function advanceDialsHalfway() {
+    if (els.dialProgress.hidden) return; // a stray late event after an unrelated reset
+    animateDialsFillTo(60);
+  }
+
+  function completeDialsPending() {
+    if (els.dialProgress.hidden) return;
+    animateDialsFillTo(100);
+    setTimeout(hideDialsPending, DIALS_STEP_MS);
+  }
+
+  // Instant reset -- used whenever composing itself ends or resets for any reason,
+  // not just when a dial change resolves normally (see completeDialsPending above
+  // for that case, which fills to 100% first as a small "yes, it landed" flourish).
   function hideDialsPending() {
     els.dialProgress.hidden = true;
     els.dialProgressFill.style.transition = "none";
@@ -263,8 +288,9 @@ Grammatizer.screenConsole = (function () {
       },
       onConcluded: (fullText) => handleConcluded(fullText),
       onError: (err) => handleComposeError(err),
-      onDialsPending: (ms) => showDialsPending(ms),
-      onDialsApplied: () => hideDialsPending(),
+      onDialsPending: () => showDialsPending(),
+      onDialsHalfway: () => advanceDialsHalfway(),
+      onDialsApplied: () => completeDialsPending(),
     });
     composerController.start();
   }
