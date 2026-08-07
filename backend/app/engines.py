@@ -55,19 +55,36 @@ def call_engine(engine_key: str, api_key: str, prompt: str, temperature: float, 
 
     if engine_key == "gemini":
         client = genai.Client(api_key=api_key)
-        # Note there's no thinking_config here: "gemini-flash-lite-latest" has no
-        # thinking capability at all (confirmed live: thoughts_token_count is None,
-        # and passing thinking_config explicitly -- even to disable it -- 400s). The
-        # earlier "thinking eats the output budget" workaround was specific to the
-        # heavier flash model this replaced; this lite tier never had that problem.
-        response = client.models.generate_content(
-            model=engine["model"],
-            contents=prompt,
-            config=genai_types.GenerateContentConfig(
-                temperature=temperature,
-                max_output_tokens=max_tokens,
-            ),
-        )
+        # "gemini-flash-lite-latest" is an ALIAS Google repoints over time, not a
+        # pinned model -- confirmed live (2026-08-07) it had drifted to a model that
+        # emits thinking content again (SDK warning: "non-text parts in the
+        # response: ['thought_signature']"), silently eating into max_output_tokens
+        # exactly like the earlier heavier-flash-model bug this alias was originally
+        # chosen to dodge. This had genuinely been confirmed absent before -- the
+        # alias just moved under us. Explicitly disabling thinking is the fix, but
+        # since a *future* alias resolution could point at a model with no thinking
+        # capability at all (where thinking_config historically 400s), try with it
+        # disabled first and fall back to omitting it entirely if that's rejected,
+        # rather than assuming today's behavior holds indefinitely.
+        config_kwargs = dict(temperature=temperature, max_output_tokens=max_tokens)
+        try:
+            response = client.models.generate_content(
+                model=engine["model"],
+                contents=prompt,
+                config=genai_types.GenerateContentConfig(
+                    thinking_config=genai_types.ThinkingConfig(thinking_budget=0),
+                    **config_kwargs,
+                ),
+            )
+        except genai.errors.ClientError as exc:
+            if getattr(exc, "code", None) == 400 and "thinking" in str(getattr(exc, "message", "")).lower():
+                response = client.models.generate_content(
+                    model=engine["model"],
+                    contents=prompt,
+                    config=genai_types.GenerateContentConfig(**config_kwargs),
+                )
+            else:
+                raise
         candidate = response.candidates[0] if response.candidates else None
         raw_reason = getattr(candidate, "finish_reason", None)
         reason_name = getattr(raw_reason, "name", str(raw_reason))

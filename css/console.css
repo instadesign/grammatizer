@@ -288,7 +288,7 @@ input[type="range"]:focus-visible::-webkit-slider-thumb {
   color: var(--text-secondary);
   border-top: var(--border-hairline);
   padding-top: var(--space-4);
-  margin: var(--space-5) 0 0;
+  margin: var(--space-5) 0 var(--space-5);
 }
 .connect-inspo a {
   color: var(--color-brass-dark);

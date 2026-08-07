@@ -33,6 +33,27 @@ def _gemini_reason(exc: Exception):
     return None
 
 
+def _gemini_quota_ids(exc: Exception):
+    """Confirmed live: a RESOURCE_EXHAUSTED error's own RetryInfo.retryDelay can be
+    misleadingly short ("6s") even when the real cause is a hard PerDay quota that
+    won't clear until tomorrow no matter how long you wait -- retrying twice at 10s
+    each against that is exactly what made the app feel "stuck" rather than just
+    telling the reader plainly. The QuotaFailure detail's quotaId (e.g.
+    "GenerateRequestsPerDayPerProjectPerModel-FreeTier") is the reliable signal."""
+    details = getattr(exc, "details", None) or {}
+    ids = []
+    try:
+        for item in details.get("error", {}).get("details", []):
+            if str(item.get("@type", "")).endswith("QuotaFailure"):
+                for violation in item.get("violations", []):
+                    quota_id = violation.get("quotaId")
+                    if quota_id:
+                        ids.append(quota_id)
+    except (AttributeError, TypeError):
+        pass
+    return ids
+
+
 # Groq's RateLimitError message includes a concrete cooldown, e.g. "...on tokens
 # per day (TPD): Limit 100000, Used 99935... Please try again in 11m43.29s." --
 # worth parsing just the number (never the surrounding text, per this module's own
@@ -63,6 +84,14 @@ def translate_exception(engine_key: str, exc: Exception) -> GenerationError:
         if reason == "API_KEY_INVALID" or "API key not valid" in message:
             return GenerationError("invalid_api_key", "The engine rejected this API key.", 401)
         if status == 429 or reason == "RESOURCE_EXHAUSTED":
+            quota_ids = _gemini_quota_ids(exc)
+            if any("PerDay" in qid for qid in quota_ids):
+                return GenerationError(
+                    "rate_limited",
+                    "Gemini's free daily quota for this key is used up for today — try again tomorrow, or switch engines.",
+                    429,
+                    retry_after_seconds=86400,  # a hard daily cap -- Gemini's own RetryInfo delay for this case can say a few seconds, which is not actually true
+                )
             return GenerationError("rate_limited", "The engine is rate-limiting this key right now.", 429)
         if status == 403 or reason == "PERMISSION_DENIED":
             return GenerationError("invalid_api_key", "This key doesn't have access to that model.", 403)
