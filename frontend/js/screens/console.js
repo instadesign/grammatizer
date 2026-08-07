@@ -54,6 +54,7 @@ Grammatizer.screenConsole = (function () {
       manuscriptStatus: document.getElementById("manuscript-status"),
       dialGroupStops: document.querySelector(".dial-group-stops"),
       dialGroupPedals: document.querySelector(".dial-group-pedals"),
+      dialLcd: document.getElementById("dial-lcd"),
       dialLcdIdle: document.getElementById("dial-lcd-idle"),
       dialProgress: document.getElementById("dial-progress"),
       dialProgressFill: document.getElementById("dial-progress-fill"),
@@ -227,6 +228,7 @@ Grammatizer.screenConsole = (function () {
     els.newManuscriptBtn.hidden = true;
     setDialsInert(false);
     hideDialsPending();
+    els.dialLcd.classList.add("is-active"); // the LCD only ticks over while the machine is actually running
 
     resetManuscriptDom();
     els.manuscriptAgency.textContent = setup.agency_name || "The Great Automatic Grammatizator";
@@ -281,6 +283,7 @@ Grammatizer.screenConsole = (function () {
     els.manuscriptWriteHead.hidden = true;
     setDialsInert(true);
     hideDialsPending();
+    els.dialLcd.classList.remove("is-active");
     els.pauseBtn.hidden = true;
     els.stopBtn.hidden = true;
     setStatus("concluded", `Manuscript stopped — ${lastRun.wordCount} words.`);
@@ -294,6 +297,7 @@ Grammatizer.screenConsole = (function () {
     els.manuscriptWriteHead.hidden = true;
     setDialsInert(true);
     hideDialsPending();
+    els.dialLcd.classList.remove("is-active");
     els.pauseBtn.hidden = true;
     els.stopBtn.hidden = true;
     setStatus("concluded", `Manuscript complete — ${lastRun.wordCount} words.`);
@@ -306,6 +310,7 @@ Grammatizer.screenConsole = (function () {
     els.manuscriptWriteHead.hidden = true;
     setDialsInert(true);
     hideDialsPending();
+    els.dialLcd.classList.remove("is-active");
     els.pauseBtn.hidden = true;
     els.stopBtn.hidden = true;
 
@@ -330,6 +335,7 @@ Grammatizer.screenConsole = (function () {
     lockSetup(false);
     setDialsInert(false);
     hideDialsPending();
+    els.dialLcd.classList.remove("is-active");
     els.pullLeverBtn.hidden = false;
     els.pullLeverBtn.classList.remove("is-engaged");
     els.pauseBtn.hidden = true;

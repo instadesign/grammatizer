@@ -549,12 +549,20 @@ input[type="range"]:focus-visible::-webkit-slider-thumb {
   width: 100%;
   height: 100%;
 }
+/* Dormant by default (no animation) -- flat low bars, like an LCD with no signal.
+   Only actually ticks over once the lever's pulled and the machine is composing;
+   .dial-lcd.is-active is toggled by console.js. */
 .dial-lcd-bar {
   width: 4px;
   height: 60%;
   border-radius: 1px;
   background: linear-gradient(180deg, var(--color-valve-glow), var(--color-brass-dark));
   transform-origin: bottom;
+  opacity: 0.35;
+  transform: scaleY(0.3);
+  transition: opacity var(--duration-standard) var(--ease-standard);
+}
+.dial-lcd.is-active .dial-lcd-bar {
   opacity: 0.75;
   animation: dial-lcd-bounce 1.1s ease-in-out infinite;
 }
@@ -647,13 +655,17 @@ input[type="range"]:focus-visible::-webkit-slider-thumb {
   color: var(--text-secondary);
   margin-bottom: var(--space-2);
 }
+/* One row per stop, knob on the left, its name beside it -- reads as an actual bank
+   of organ stops, not a row of pill buttons. */
 .stop-row {
   display: flex;
-  flex-wrap: wrap;
+  flex-direction: column;
   gap: var(--space-2);
 }
 .stop-toggle {
-  position: relative;
+  display: flex;
+  align-items: center;
+  gap: var(--space-2);
   cursor: pointer;
 }
 .stop-toggle input {
@@ -663,30 +675,41 @@ input[type="range"]:focus-visible::-webkit-slider-thumb {
   height: 1px;
   pointer-events: none;
 }
-.stop-toggle span {
-  display: inline-block;
-  padding: var(--space-1) var(--space-2);
+.stop-toggle-knob {
+  flex-shrink: 0;
+  width: 14px;
+  height: 14px;
+  border-radius: 50%;
+  background: radial-gradient(circle at 35% 30%, var(--color-iron-soft), var(--color-iron) 70%);
+  border: 1px solid var(--color-slate);
+  box-shadow: var(--shadow-inset);
+  transition: background var(--duration-quick) var(--ease-standard),
+              border-color var(--duration-quick) var(--ease-standard),
+              box-shadow var(--duration-quick) var(--ease-standard),
+              transform var(--duration-quick) var(--ease-standard);
+}
+.stop-toggle-label {
   font-family: var(--font-mechanical);
   font-size: var(--text-xs);
   color: var(--text-secondary);
-  background: var(--bg-panel);
-  border: var(--border-hairline);
-  border-radius: var(--radius-rivet);
-  transition: background var(--duration-quick) var(--ease-standard),
-              border-color var(--duration-quick) var(--ease-standard),
-              color var(--duration-quick) var(--ease-standard);
+  transition: color var(--duration-quick) var(--ease-standard);
 }
-.stop-toggle:hover span {
+.stop-toggle:hover .stop-toggle-knob {
   border-color: var(--color-brass-dark);
 }
-.stop-toggle input:checked + span {
-  background: linear-gradient(180deg, var(--color-valve-glow), var(--color-brass-dark));
+/* "Pulled": the knob lifts slightly and lights up amber, like a real stop drawn out. */
+.stop-toggle input:checked + .stop-toggle-knob {
+  background: radial-gradient(circle at 35% 30%, var(--color-valve-glow), var(--color-brass-dark) 75%);
   border-color: var(--color-brass);
-  color: var(--color-iron);
+  box-shadow: 0 0 5px var(--color-valve-glow), var(--shadow-inset);
+  transform: scale(1.15);
 }
-.stop-toggle input:focus-visible + span {
+.stop-toggle input:checked + .stop-toggle-knob + .stop-toggle-label {
+  color: var(--color-brass-dark);
+}
+.stop-toggle input:focus-visible + .stop-toggle-knob {
   outline: 2px solid var(--color-brass);
-  outline-offset: 1px;
+  outline-offset: 2px;
 }
 
 .safety-governor {
