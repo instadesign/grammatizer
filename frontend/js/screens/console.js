@@ -62,6 +62,7 @@ Grammatizer.screenConsole = (function () {
       pauseBtn: document.getElementById("btn-pause"),
       stopBtn: document.getElementById("btn-stop"),
       bindArchiveBtn: document.getElementById("btn-bind-archive"),
+      switchEngineBtn: document.getElementById("btn-switch-engine"),
       newManuscriptBtn: document.getElementById("btn-new-manuscript"),
       forgetMeBtn: document.getElementById("btn-forget-me"),
       consoleError: document.getElementById("console-error"),
@@ -74,6 +75,7 @@ Grammatizer.screenConsole = (function () {
     els.pauseBtn.addEventListener("click", handleTogglePause);
     els.stopBtn.addEventListener("click", handleStop);
     els.newManuscriptBtn.addEventListener("click", handleNewManuscript);
+    els.switchEngineBtn.addEventListener("click", handleSwitchEngine);
     els.bindArchiveBtn.addEventListener("click", handleBindArchive);
     els.forgetMeBtn.addEventListener("click", handleForgetMe);
 
@@ -225,6 +227,7 @@ Grammatizer.screenConsole = (function () {
     els.pauseBtn.textContent = "Pause";
     els.stopBtn.hidden = false;
     els.bindArchiveBtn.hidden = true;
+    els.switchEngineBtn.hidden = true;
     els.newManuscriptBtn.hidden = true;
     setDialsInert(false);
     hideDialsPending();
@@ -288,6 +291,7 @@ Grammatizer.screenConsole = (function () {
     els.stopBtn.hidden = true;
     setStatus("concluded", `Manuscript stopped — ${lastRun.wordCount} words.`);
     els.bindArchiveBtn.hidden = false;
+    els.switchEngineBtn.hidden = true;
     els.newManuscriptBtn.hidden = false;
   }
 
@@ -302,6 +306,7 @@ Grammatizer.screenConsole = (function () {
     els.stopBtn.hidden = true;
     setStatus("concluded", `Manuscript complete — ${lastRun.wordCount} words.`);
     els.bindArchiveBtn.hidden = false;
+    els.switchEngineBtn.hidden = true;
     els.newManuscriptBtn.hidden = false;
   }
 
@@ -322,6 +327,14 @@ Grammatizer.screenConsole = (function () {
 
     setStatus("jammed", (err && err.message) || "The machine has jammed.");
     els.newManuscriptBtn.hidden = false;
+    // This engine specifically is the problem (its own rate limit or an outage) --
+    // offer a direct way back to the engine picker, not just a same-engine retry.
+    els.switchEngineBtn.hidden = !(err && (err.code === "rate_limited" || err.code === "engine_overloaded"));
+  }
+
+  function handleSwitchEngine() {
+    handleNewManuscript();
+    Grammatizer.router.backToConnect();
   }
 
   function handleNewManuscript() {
@@ -342,6 +355,7 @@ Grammatizer.screenConsole = (function () {
     els.pauseBtn.textContent = "Pause";
     els.stopBtn.hidden = true;
     els.bindArchiveBtn.hidden = true;
+    els.switchEngineBtn.hidden = true;
     els.newManuscriptBtn.hidden = true;
     hideStatus();
     clearError();
