@@ -17,34 +17,18 @@ Grammatizer.screenConnect = (function () {
   function init() {
     els = {
       root: document.getElementById("screen-connect"),
-      apiKeyField: document.getElementById("api-key-field"),
       apiKeyInput: document.getElementById("api-key-input"),
-      claudeKeyNote: document.getElementById("claude-key-note"),
       error: document.getElementById("connect-error"),
       connectBtn: document.getElementById("btn-connect"),
     };
 
-    els.root.querySelectorAll('input[name="engine"]').forEach((radio) => {
-      radio.addEventListener("change", syncApiKeyVisibility);
-    });
-
     els.connectBtn.addEventListener("click", handleConnect);
 
     restoreFromProfile();
-    syncApiKeyVisibility();
   }
 
-  // The Claude backup engine runs on a shared, budget-capped house key -- there's
-  // deliberately no BYOK field for it (see engines.py). Everything else is BYOK.
   function selectedEngine() {
     return els.root.querySelector('input[name="engine"]:checked').value;
-  }
-
-  function syncApiKeyVisibility() {
-    const isKeyless = selectedEngine() === "claude";
-    els.apiKeyField.hidden = isKeyless;
-    els.claudeKeyNote.hidden = !isKeyless;
-    if (isKeyless) els.apiKeyInput.value = "";
   }
 
   function restoreFromProfile() {
@@ -69,10 +53,10 @@ Grammatizer.screenConnect = (function () {
   function handleConnect() {
     clearError();
     const engine = selectedEngine();
-    const apiKey = engine === "claude" ? "" : els.apiKeyInput.value.trim();
+    const apiKey = els.apiKeyInput.value.trim();
 
-    if (engine !== "claude" && !apiKey) {
-      showError("Paste an API key, or switch to the keyless Claude backup engine.");
+    if (!apiKey) {
+      showError("Paste an API key to connect the machine.");
       return;
     }
 

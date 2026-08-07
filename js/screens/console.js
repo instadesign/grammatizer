@@ -8,7 +8,6 @@ Grammatizer.screenConsole = (function () {
   const ENGINE_MODEL_NAMES = {
     gemini: "gemini-flash-lite-latest",
     groq: "llama-3.3-70b-versatile",
-    claude: "claude-haiku-4-5",
   };
 
   let els = {};

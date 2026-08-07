@@ -44,12 +44,6 @@
         </span>
       </label>
 
-      <label class="engine-card" data-engine-card="claude">
-        <input type="radio" name="engine" value="claude">
-        <span class="engine-card-name">Claude (backup)</span>
-        <span class="engine-card-tag">No key needed</span>
-        <span class="engine-card-desc">Runs on a shared house key with a strict daily limit — a fallback for when you don't have your own key, not for heavy use.</span>
-      </label>
     </fieldset>
 
     <label class="field" for="api-key-input" id="api-key-field">
@@ -57,7 +51,6 @@
       <input type="password" id="api-key-input" autocomplete="off" spellcheck="false" placeholder="Paste your key here">
       <span class="field-hint" id="api-key-hint">New here? Use the "Get a free key" link on the card above, sign in, create a key, then paste it here. Kept only for this browser session, sent only to your chosen engine. Never stored on our server.</span>
     </label>
-    <p class="field-hint field-standalone-hint" id="claude-key-note" hidden>No key needed — the backup engine runs on a shared house key, limited to a strict daily quota. If it's exhausted, switch to Gemini or Groq with your own free key.</p>
 
     <p class="connect-error" id="connect-error" role="alert" hidden></p>
 

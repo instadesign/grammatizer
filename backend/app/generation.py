@@ -7,7 +7,7 @@ import logging
 import re
 import time
 
-from . import budget, engines
+from . import engines
 from .errors import GenerationError, translate_exception
 from .prompts import END_SENTINEL, NEAR_END_WORDS, OVERRUN_WORDS, build_beat_prompt
 
@@ -123,22 +123,8 @@ def trim_to_last_sentence(text: str) -> str:
 def generate_beat(req) -> dict:
     api_key = engines.resolve_api_key(req.engine, req.api_key)
     if not api_key:
-        message = (
-            "The backup engine isn't enabled right now — try Gemini or Groq with your own key."
-            if req.engine == "claude"
-            else "No API key supplied and no server-side fallback configured."
-        )
-        raise GenerationError("missing_api_key", message, 401)
-
-    # Claude backup is the operator's own key, shared across every visitor -- see
-    # budget.py. Gemini/Groq are BYOK, so each visitor spends their own quota and
-    # need no cap here.
-    if req.engine == "claude" and not budget.check_and_reserve():
         raise GenerationError(
-            "budget_exhausted",
-            "The backup engine's daily budget is used up for today — try again tomorrow, "
-            "or bring your own Gemini/Groq key for unlimited use.",
-            429,
+            "missing_api_key", "No API key supplied and no server-side fallback configured.", 401
         )
 
     current_words = count_words(req.story_so_far)
@@ -161,12 +147,9 @@ def generate_beat(req) -> dict:
     for attempt in range(MAX_EMPTY_BEAT_RETRIES + 1):
         # Errors raised here are already-mapped GenerationErrors (and already logged
         # server-side, minus the retried rate-limit attempts) -- see _call_engine_with_retry.
-        raw_text, finish_reason, usage_tokens = _call_engine_with_retry(
+        raw_text, finish_reason, _usage_tokens = _call_engine_with_retry(
             req.engine, api_key, prompt, temperature=req.temperature, max_tokens=max_tokens
         )
-
-        if req.engine == "claude" and usage_tokens is not None:
-            budget.record_usage(usage_tokens)
 
         # Trust the sentinel only when the prompt actually offered it (see prompts.py --
         # far from the target, the model is told NOT to use it at all). Defense in depth:

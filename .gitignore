@@ -2,6 +2,5 @@ backend/.venv/
 **/__pycache__/
 *.pyc
 backend/.env
-backend/app/claude_budget.sqlite3
 .claude/settings.local.json
 .DS_Store

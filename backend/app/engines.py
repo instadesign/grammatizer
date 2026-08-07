@@ -4,7 +4,6 @@ prototype's ENGINES dict / generate_story(), ported essentially unchanged."""
 import os
 from typing import Optional
 
-import anthropic
 from google import genai
 from google.genai import types as genai_types
 from openai import OpenAI
@@ -27,15 +26,6 @@ ENGINES = {
         "env_var": "GROQ_API_KEY",
         "model": "llama-3.3-70b-versatile",
     },
-    "claude": {
-        # Backup engine, server-side key only (no BYOK field in the UI) -- see
-        # budget.py for the shared daily cap this engine alone is subject to.
-        # Haiku 4.5 deliberately, not a frontier model: this key is the operator's
-        # own, shared across every visitor, so cost-per-call matters here in a way
-        # it doesn't for the BYOK engines.
-        "env_var": "CLAUDE_API_KEY",
-        "model": "claude-haiku-4-5",
-    },
 }
 
 
@@ -49,23 +39,24 @@ def resolve_api_key(engine_key: str, supplied_key: Optional[str]) -> Optional[st
 def call_engine(engine_key: str, api_key: str, prompt: str, temperature: float, max_tokens: int):
     """One completion call. Returns (text, finish_reason, usage_tokens) where
     finish_reason is normalized to 'stop' (finished naturally) or 'length' (cut off
-    by max_tokens), and usage_tokens is the real output-token count when the engine
-    reports one (currently just Claude, for budget.py's shared cap) or None."""
+    by max_tokens). usage_tokens is always None -- both engines here are BYOK, so
+    there's no shared server-side budget to track against it."""
     engine = ENGINES[engine_key]
 
     if engine_key == "gemini":
         client = genai.Client(api_key=api_key)
         # "gemini-flash-lite-latest" is an ALIAS Google repoints over time, not a
-        # pinned model -- confirmed live (2026-08-07) it had drifted to a model that
-        # emits thinking content again (SDK warning: "non-text parts in the
-        # response: ['thought_signature']"), silently eating into max_output_tokens
-        # exactly like the earlier heavier-flash-model bug this alias was originally
-        # chosen to dodge. This had genuinely been confirmed absent before -- the
-        # alias just moved under us. Explicitly disabling thinking is the fix, but
-        # since a *future* alias resolution could point at a model with no thinking
-        # capability at all (where thinking_config historically 400s), try with it
-        # disabled first and fall back to omitting it entirely if that's rejected,
-        # rather than assuming today's behavior holds indefinitely.
+        # pinned model, and its thinking support has flip-flopped under us across
+        # this same session: at one point it silently emitted thinking content
+        # (eating into max_output_tokens), so passing thinking_config to disable it
+        # was the fix -- but confirmed live just now, the alias has moved again and
+        # the *current* resolution 400s on thinking_config entirely, with a fully
+        # generic "Request contains an invalid argument." that says nothing about
+        # thinking specifically. A message-content check for "thinking" is exactly
+        # what missed this. Retry without thinking_config on ANY 400 from the first
+        # attempt instead of trying to pattern-match the message -- if that wasn't
+        # the actual cause, the retry fails too and its own error still propagates
+        # normally.
         config_kwargs = dict(temperature=temperature, max_output_tokens=max_tokens)
         try:
             response = client.models.generate_content(
@@ -77,7 +68,7 @@ def call_engine(engine_key: str, api_key: str, prompt: str, temperature: float, 
                 ),
             )
         except genai.errors.ClientError as exc:
-            if getattr(exc, "code", None) == 400 and "thinking" in str(getattr(exc, "message", "")).lower():
+            if getattr(exc, "code", None) == 400:
                 response = client.models.generate_content(
                     model=engine["model"],
                     contents=prompt,
@@ -104,22 +95,5 @@ def call_engine(engine_key: str, api_key: str, prompt: str, temperature: float, 
         choice = response.choices[0]
         finish_reason = "stop" if choice.finish_reason == "stop" else "length"
         return (choice.message.content or ""), finish_reason, None
-
-    if engine_key == "claude":
-        client = anthropic.Anthropic(api_key=api_key)
-        response = client.messages.create(
-            model=engine["model"],
-            max_tokens=max_tokens,
-            # Claude's temperature range tops out at 1.0; our dial goes to 1.5 for
-            # the other engines' looser ranges, so clamp rather than let it 400.
-            temperature=min(temperature, 1.0),
-            messages=[{"role": "user", "content": prompt}],
-            # Haiku 4.5 doesn't think by default (that's an Opus/Sonnet-tier
-            # behavior) — no thinking_budget footgun to work around here.
-        )
-        text = next((b.text for b in response.content if b.type == "text"), "") or ""
-        finish_reason = "stop" if response.stop_reason == "end_turn" else "length"
-        usage_tokens = getattr(response.usage, "output_tokens", None)
-        return text, finish_reason, usage_tokens
 
     raise ValueError(f"Unknown engine: {engine_key}")

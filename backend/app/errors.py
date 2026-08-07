@@ -121,17 +121,4 @@ def translate_exception(engine_key: str, exc: Exception) -> GenerationError:
             return GenerationError("engine_overloaded", "The engine is overloaded right now.", 503)
         return GenerationError("engine_error", "The engine failed to respond.", 502)
 
-    if engine_key == "claude":
-        # Same anthropic-SDK exception names on this path as any other Claude API
-        # caller -- see shared/error-codes.md's typed-exception table.
-        if type_name == "AuthenticationError":
-            return GenerationError("invalid_api_key", "The backup engine's key was rejected — the operator needs to check it.", 401)
-        if type_name == "PermissionDeniedError":
-            return GenerationError("invalid_api_key", "The backup engine's key doesn't have access to that model.", 403)
-        if type_name == "RateLimitError":
-            return GenerationError("rate_limited", "The backup engine is rate-limited right now.", 429)
-        if type_name in ("APIConnectionError", "InternalServerError"):
-            return GenerationError("engine_overloaded", "The backup engine is overloaded right now.", 503)
-        return GenerationError("engine_error", "The backup engine failed to respond.", 502)
-
     return GenerationError("engine_error", "The engine failed to respond.", 502)
