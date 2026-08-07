@@ -224,6 +224,25 @@ input[type="range"]:focus-visible::-webkit-slider-thumb {
   color: var(--color-brass-dark);
 }
 
+/* Same control, shrunk and turned sideways to sit in the fixed header next to
+   Forget Me -- icon on the left, label beside it, rather than the full-size plate
+   with the label stacked underneath. */
+.lever-switch--compact {
+  flex-direction: row;
+  width: auto;
+  min-height: 36px;
+  gap: var(--space-2);
+}
+.lever-switch--compact .lever-switch-plate {
+  width: 30px;
+  height: 36px;
+  padding-bottom: var(--space-1);
+}
+.lever-switch--compact .lever-switch-icon {
+  width: 16px;
+  height: 24px;
+}
+
 /* ---- Screen 1: Engine connect -------------------------------------------- */
 
 .screen-connect {
@@ -346,20 +365,39 @@ input[type="range"]:focus-visible::-webkit-slider-thumb {
 /* ---- Screen 3: Console ---------------------------------------------------- */
 
 .screen-console {
-  padding: var(--space-4) var(--space-4) var(--space-7);
+  padding: 0 var(--space-4) var(--space-7);
   max-width: 1200px;
   margin: 0 auto;
 }
 
+/* Fixed so Pull Lever and Forget Me are always reachable, not just before the
+   reader scrolls down -- the inner wrapper keeps its content aligned with the rest
+   of the console (which is capped at the same max-width) while the bar itself
+   spans the full viewport width behind it. */
 .console-header {
+  position: fixed;
+  top: 0;
+  left: 0;
+  right: 0;
+  z-index: var(--z-console-header);
+  background: var(--bg-console);
+  border-bottom: var(--border-hairline);
+}
+.console-header-inner {
   display: flex;
-  align-items: baseline;
+  align-items: center;
   justify-content: space-between;
   flex-wrap: wrap;
   gap: var(--space-3);
-  padding-block: var(--space-5);
-  border-bottom: var(--border-hairline);
-  margin-bottom: var(--space-5);
+  max-width: 1200px;
+  margin: 0 auto;
+  padding: var(--space-3) var(--space-4);
+}
+
+.console-header-actions {
+  display: flex;
+  align-items: center;
+  gap: var(--space-4);
 }
 
 .console-title {
@@ -368,7 +406,10 @@ input[type="range"]:focus-visible::-webkit-slider-thumb {
   font-size: var(--text-lg);
 }
 
+/* Clears the fixed header -- generous rather than hair-thin, since the header can
+   wrap onto two lines on narrow viewports. */
 .console-main {
+  margin-top: 92px;
   display: grid;
   grid-template-columns: minmax(0, 1fr) minmax(240px, 300px);
   gap: var(--space-5);
@@ -436,15 +477,6 @@ input[type="range"]:focus-visible::-webkit-slider-thumb {
   padding: var(--space-5);
   display: grid;
   gap: var(--space-5);
-}
-
-.setup-drawer-footer {
-  flex: 0 0 auto;
-  padding: var(--space-4) var(--space-5);
-  border-top: var(--border-hairline);
-  background:
-    repeating-linear-gradient(135deg, rgba(0,0,0,0.03) 0 2px, transparent 2px 14px),
-    var(--bg-panel);
 }
 
 .manuscript-slot {
@@ -524,6 +556,24 @@ input[type="range"]:focus-visible::-webkit-slider-thumb {
 }
 .manuscript-status.is-paused {
   color: var(--color-slate);
+}
+
+/* Shown right under the status line for rate_limited/engine_overloaded errors --
+   a real inline link, not a separate boxed button, so it reads as part of the
+   sentence the jammed message just made. */
+.manuscript-status-link {
+  display: block;
+  margin-top: var(--space-2);
+  font-family: var(--font-mechanical);
+  font-size: var(--text-xs);
+  letter-spacing: 0.04em;
+  color: var(--color-brass-dark);
+  text-decoration: underline;
+  text-underline-offset: 2px;
+}
+.manuscript-status-link:hover,
+.manuscript-status-link:focus-visible {
+  color: var(--color-brass);
 }
 
 /* A small lo-fi LCD readout above the organ stops: idles as a made-up "the machine
@@ -753,5 +803,13 @@ input[type="range"]:focus-visible::-webkit-slider-thumb {
   }
   .setup-drawer {
     width: 100%;
+  }
+}
+
+@media (max-width: 560px) {
+  /* The header wraps to two lines below this width -- give the content below it
+     more clearance so nothing starts out hidden underneath. */
+  .console-main {
+    margin-top: 132px;
   }
 }

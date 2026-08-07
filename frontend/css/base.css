@@ -158,18 +158,14 @@ a {
   color: var(--color-brass-dark);
 }
 
-/* Quiet build tag, present on every screen -- bump the number by hand each iteration. */
+/* Lives inside .app-footer now (was a separate floating corner tag that turned out
+   too easy to miss entirely) -- bump the number by hand each iteration. */
 .build-tag {
-  position: fixed;
-  right: var(--space-2, 8px);
-  bottom: var(--space-2, 8px);
-  margin: 0;
-  padding: 2px 8px;
+  margin: var(--space-3) 0 0;
   font-family: var(--font-mechanical, monospace);
   font-size: 10px;
-  letter-spacing: 0.04em;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
   color: var(--text-secondary, #8a8272);
-  opacity: 0.55;
-  pointer-events: none;
-  z-index: 5;
+  opacity: 0.7;
 }

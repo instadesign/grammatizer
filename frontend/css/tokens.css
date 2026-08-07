@@ -87,6 +87,7 @@
   /* ---- Layering --------------------------------------------------------- */
   --z-console: 1;
   --z-panel-lock: 5;
+  --z-console-header: 6;
   --z-ignition: 10;
   --z-transition-overlay: 20;
   --z-toast: 30;

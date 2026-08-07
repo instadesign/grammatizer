@@ -83,7 +83,7 @@ def translate_exception(engine_key: str, exc: Exception) -> GenerationError:
                 minutes = max(1, round(retry_seconds / 60))
                 message = (
                     f"Groq's free daily quota for this key is exhausted for now -- try again "
-                    f"in about {minutes} minute{'s' if minutes != 1 else ''}, or switch engines."
+                    f"in about {minutes} minute{'s' if minutes != 1 else ''}."
                 )
             else:
                 message = "The engine is rate-limiting this key right now."

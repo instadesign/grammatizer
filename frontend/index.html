@@ -93,9 +93,17 @@
 <main id="screen-console" class="screen screen-console" data-screen="console" hidden>
 
   <header class="console-header">
-    <h1 class="console-title">The Great Automatic Grammatizator</h1>
-    <div class="console-header-actions">
-      <button type="button" class="btn btn-ghost btn-small" id="btn-forget-me">Forget Me</button>
+    <div class="console-header-inner">
+      <h1 class="console-title">The Great Automatic Grammatizator</h1>
+      <div class="console-header-actions">
+        <button type="button" class="lever-switch lever-switch--compact" id="btn-pull-lever" aria-label="Pull lever — begin composing">
+          <span class="lever-switch-plate">
+            <svg class="lever-switch-icon" id="lever-icon" viewBox="0 0 40 60" aria-hidden="true"><use href="assets/svg/lever.svg#lever"></use></svg>
+          </span>
+          <span class="lever-switch-label">Pull Lever</span>
+        </button>
+        <button type="button" class="btn btn-ghost btn-small" id="btn-forget-me">Forget Me</button>
+      </div>
     </div>
   </header>
 
@@ -234,15 +242,6 @@
       </aside>
 
         </div><!-- /setup-drawer-scroll (#setup-bank) -->
-
-        <div class="setup-drawer-footer">
-          <button type="button" class="lever-switch" id="btn-pull-lever" aria-label="Pull lever — begin composing">
-            <span class="lever-switch-plate">
-              <svg class="lever-switch-icon" id="lever-icon" viewBox="0 0 40 60" aria-hidden="true"><use href="assets/svg/lever.svg#lever"></use></svg>
-            </span>
-            <span class="lever-switch-label">Pull Lever</span>
-          </button>
-        </div>
       </aside><!-- /setup-drawer -->
     </div><!-- /setup-drawer-clip -->
 
@@ -259,13 +258,13 @@
         </div>
         <div class="manuscript-text" id="manuscript-text" aria-live="polite"><span id="manuscript-text-content"></span><span class="write-head" id="manuscript-write-head" hidden></span></div>
         <p class="manuscript-status" id="manuscript-status" hidden></p>
+        <a href="#" class="manuscript-status-link" id="switch-engine-link" hidden>Switch engines &rarr;</a>
       </div>
 
       <div class="manuscript-actions">
         <button type="button" class="btn btn-ghost" id="btn-pause" hidden>Pause</button>
         <button type="button" class="btn btn-ghost" id="btn-stop" hidden>Stop</button>
         <button type="button" class="btn btn-brass" id="btn-bind-archive" hidden>Bind &amp; Archive (PDF)</button>
-        <button type="button" class="btn btn-ghost" id="btn-switch-engine" hidden>Switch Engine</button>
         <button type="button" class="btn btn-ghost" id="btn-new-manuscript" hidden>New Manuscript</button>
       </div>
       <p class="console-error" id="console-error" role="alert" hidden></p>
@@ -373,12 +372,13 @@
 <div class="toast" id="toast" role="status" aria-live="polite" hidden></div>
 
 <footer class="app-footer">
-  Inspired by Roald Dahl's short story <em>The Great Automatic Grammatizator</em> (1953) —
-  <a href="https://en.wikipedia.org/wiki/The_Great_Automatic_Grammatizator" target="_blank" rel="noopener noreferrer">about the story</a> ·
-  <a href="https://www.penguin.co.uk/books/192016/the-great-automatic-grammatizator-a-roald-dahl-short-story-by-dahl-roald/9781405911153" target="_blank" rel="noopener noreferrer">read it</a>
+  <p class="app-footer-inspo">
+    Inspired by Roald Dahl's short story <em>The Great Automatic Grammatizator</em> (1953) —
+    <a href="https://en.wikipedia.org/wiki/The_Great_Automatic_Grammatizator" target="_blank" rel="noopener noreferrer">about the story</a> ·
+    <a href="https://www.penguin.co.uk/books/192016/the-great-automatic-grammatizator-a-roald-dahl-short-story-by-dahl-roald/9781405911153" target="_blank" rel="noopener noreferrer">read it</a>
+  </p>
+  <p class="build-tag" id="build-tag">Beta v0.19</p>
 </footer>
-
-<p class="build-tag" id="build-tag" aria-hidden="true">Beta v0.16</p>
 
 <script src="js/state.js"></script>
 <script src="js/api.js"></script>
