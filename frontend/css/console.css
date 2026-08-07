@@ -415,6 +415,10 @@ input[type="range"]:focus-visible::-webkit-slider-thumb {
   gap: var(--space-5);
   align-items: start;
   position: relative;
+  /* Explicit, not just implicitly lower than the fixed header by virtue of z-index:
+     auto -- makes "header stacks above the main area" a real, readable rule instead
+     of an accident of the auto-vs-explicit stacking algorithm. */
+  z-index: var(--z-console);
 }
 
 .panel {
