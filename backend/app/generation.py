@@ -124,7 +124,7 @@ def generate_beat(req) -> dict:
     api_key = engines.resolve_api_key(req.engine, req.api_key)
     if not api_key:
         message = (
-            "The backup engine isn't enabled right now -- try Gemini or Groq with your own key."
+            "The backup engine isn't enabled right now — try Gemini or Groq with your own key."
             if req.engine == "claude"
             else "No API key supplied and no server-side fallback configured."
         )
@@ -136,7 +136,7 @@ def generate_beat(req) -> dict:
     if req.engine == "claude" and not budget.check_and_reserve():
         raise GenerationError(
             "budget_exhausted",
-            "The backup engine's daily budget is used up for today -- try again tomorrow, "
+            "The backup engine's daily budget is used up for today — try again tomorrow, "
             "or bring your own Gemini/Groq key for unlimited use.",
             429,
         )

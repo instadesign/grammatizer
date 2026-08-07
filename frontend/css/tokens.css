@@ -65,6 +65,8 @@
   --space-8: 4.5rem;
 
   /* ---- Structure ---------------------------------------------------------- */
+  --drawer-width: 340px; /* the off-canvas setup drawer's own width, referenced by
+    the manuscript placeholder too so its text doesn't render underneath the drawer */
   --radius-rivet: 2px;    /* almost-sharp — this is a riveted machine, not a soft app */
   --radius-gauge: 50%;
   --border-hairline: 1px solid var(--color-iron);

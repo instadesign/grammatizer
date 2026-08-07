@@ -82,7 +82,7 @@ def translate_exception(engine_key: str, exc: Exception) -> GenerationError:
             if retry_seconds and retry_seconds > 30:
                 minutes = max(1, round(retry_seconds / 60))
                 message = (
-                    f"Groq's free daily quota for this key is exhausted for now -- try again "
+                    f"Groq's free daily quota for this key is exhausted for now — try again "
                     f"in about {minutes} minute{'s' if minutes != 1 else ''}."
                 )
             else:
@@ -96,7 +96,7 @@ def translate_exception(engine_key: str, exc: Exception) -> GenerationError:
         # Same anthropic-SDK exception names on this path as any other Claude API
         # caller -- see shared/error-codes.md's typed-exception table.
         if type_name == "AuthenticationError":
-            return GenerationError("invalid_api_key", "The backup engine's key was rejected -- the operator needs to check it.", 401)
+            return GenerationError("invalid_api_key", "The backup engine's key was rejected — the operator needs to check it.", 401)
         if type_name == "PermissionDeniedError":
             return GenerationError("invalid_api_key", "The backup engine's key doesn't have access to that model.", 403)
         if type_name == "RateLimitError":

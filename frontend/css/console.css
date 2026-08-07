@@ -458,7 +458,7 @@ input[type="range"]:focus-visible::-webkit-slider-thumb {
 .setup-drawer {
   position: absolute;
   inset: 0;
-  width: min(340px, 100%);
+  width: min(var(--drawer-width), 100%);
   display: flex;
   flex-direction: column;
   background: var(--bg-panel);
@@ -507,10 +507,14 @@ input[type="range"]:focus-visible::-webkit-slider-thumb {
   );
 }
 
+/* The off-canvas setup drawer overlays this card's own left --drawer-width while
+   unlocked (see .setup-drawer) -- without this offset the placeholder text rendered
+   entirely underneath it and was never actually visible on screen. */
 .manuscript-placeholder {
   color: var(--text-secondary);
   font-style: italic;
   font-family: var(--font-body);
+  margin-left: var(--drawer-width);
 }
 
 .manuscript-letterhead {
@@ -813,6 +817,12 @@ input[type="range"]:focus-visible::-webkit-slider-thumb {
   }
   .setup-drawer {
     width: 100%;
+  }
+  .manuscript-placeholder {
+    /* The drawer covers the whole card's width here, so nothing in it is visible
+       anyway until it's locked away -- reset the offset rather than leave a
+       340px margin that would just overflow this width instead. */
+    margin-left: 0;
   }
 }
 
