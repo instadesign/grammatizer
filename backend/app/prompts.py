@@ -179,6 +179,18 @@ DIALOGUE_PACING_GUIDELINE = (
     "just quote after quote."
 )
 
+# Confirmed live: with each beat capped at ~120 characters, some models default to
+# writing one complete, similarly-sized declarative sentence every single time --
+# after enough beats it reads as a flat list of same-length statements rather than
+# prose with any rhythm. This is the direct countermeasure, not a hypothetical.
+RHYTHM_VARIETY_GUIDELINE = (
+    "Vary sentence length and shape from line to line -- don't let every beat land as "
+    "a similarly-sized, complete declarative sentence. Some lines should be short and "
+    "blunt; others can run on with a trailing clause, open mid-action, end on a "
+    "fragment, or lead with something other than the subject. A run of same-length, "
+    "same-shape lines reads as a list, not a story."
+)
+
 
 def _dialogue_pacing_instruction(story_so_far: str) -> str:
     """The standing guideline above is a soft, always-on nudge; escalate to an
@@ -256,6 +268,8 @@ FIXED SETUP (do not deviate from these for the whole story):
 {setup_lines}
 
 {PROSE_CRAFT_BENCHMARK}
+
+{RHYTHM_VARIETY_GUIDELINE}
 
 {SAFETY_GOVERNOR}
 
