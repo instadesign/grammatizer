@@ -199,6 +199,39 @@ RHYTHM_VARIETY_GUIDELINE = (
     "self-contained, similarly-sized sentence -- that reads as a list, not a story."
 )
 
+# Confirmed live: a full character name reappearing in nearly every line, when real
+# prose leans on pronouns and epithets almost all of the time once a character is
+# established.
+CHARACTER_REFERENCE_GUIDELINE = (
+    "Vary how characters are referred to -- do not repeat a full name in every line "
+    "once it's established. Prefer pronouns (he, she, they) or a brief epithet (the "
+    "old sailor, her sister, the boy) for several lines running before a full name "
+    "reappears, exactly as real prose does. Reach for the full name again only when "
+    "clarity genuinely needs it -- a new character just entered, or two characters "
+    "could otherwise be confused -- never out of habit."
+)
+
+
+# Confirmed live: tense drifting mid-story (past to present and back) despite the
+# fixed Tense setting already being listed once in FIXED SETUP -- a setting stated
+# once at the top, distant from the generation point, was getting diluted by the
+# time attention reached the actual line, same lesson as the dial-recency fix
+# above. Restated here, right next to generation, plus a general nudge to actually
+# reconcile with what's already on the page rather than treating each beat as an
+# isolated thought.
+def _coherence_instruction(tense: str) -> str:
+    return (
+        f"Coherence check before writing this line: keep verb tense fixed in "
+        f"{tense} for the entire line, matching the STORY SO FAR exactly -- never "
+        f"drift into a different tense partway through, even for a single verb. "
+        f"Make sure this line genuinely follows on from the sentence immediately "
+        f"before it, not a fresh, disconnected thought, and stays consistent with "
+        f"every name, detail, and fact already established on the page. If the "
+        f"story so far has already drifted or contradicted itself, use this line to "
+        f"quietly correct course back toward the Ending and story arc, rather than "
+        f"compounding the drift."
+    )
+
 
 def _dialogue_pacing_instruction(story_so_far: str) -> str:
     """The standing guideline above is a soft, always-on nudge; escalate to an
@@ -279,6 +312,8 @@ FIXED SETUP (do not deviate from these for the whole story):
 
 {RHYTHM_VARIETY_GUIDELINE}
 
+{CHARACTER_REFERENCE_GUIDELINE}
+
 {SAFETY_GOVERNOR}
 
 {DIALOGUE_PACING_GUIDELINE}{story_so_far_block}
@@ -292,6 +327,8 @@ prominent a moment ago -- don't continue it on momentum.
 
 FOOT PEDALS (continuous, 0-10) -- also read fresh for every line:
 {dial_lines}
+
+{_coherence_instruction(req.tense)}
 
 {_continuation_instruction(req.story_so_far, remaining_words, req.target_words)}
 {end_sentinel_instruction}{_dialogue_pacing_instruction(req.story_so_far)}

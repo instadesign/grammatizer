@@ -397,6 +397,13 @@ Grammatizer.screenConsole = (function () {
     els.manuscriptPaper.scrollTop = 0;
   }
 
+  // Strips characters that are unsafe (or just ugly) in a downloaded filename --
+  // deliberately permissive rather than trying to enumerate every OS's exact
+  // reserved-character set, since this only ever feeds into "<slug>.pdf".
+  function slugifyForFilename(text) {
+    return text.trim().replace(/[\\/:*?"<>|]/g, "").replace(/\s+/g, "-").slice(0, 60);
+  }
+
   async function handleBindArchive() {
     if (!lastRun || !lastRun.storyText) return;
     clearError();
@@ -415,7 +422,12 @@ Grammatizer.screenConsole = (function () {
       const url = URL.createObjectURL(blob);
       const a = document.createElement("a");
       a.href = url;
-      a.download = "grammatizator-manuscript.pdf";
+      const nameParts = [
+        "grammatizator-manuscript",
+        slugifyForFilename(lastRun.setup.agency_name || ""),
+        slugifyForFilename(lastRun.setup.user_name || ""),
+      ].filter(Boolean);
+      a.download = `${nameParts.join("-")}.pdf`;
       document.body.appendChild(a);
       a.click();
       a.remove();
