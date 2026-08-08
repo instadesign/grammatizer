@@ -56,6 +56,84 @@ def _duplicates_story_tail(text: str, story_so_far: str) -> bool:
     return any(_normalize_sentence(s) in tail_normalized for s in new_sentences)
 
 
+_WORD_RE = re.compile(r"[A-Za-z']+")
+REPETITION_WINDOW_WORDS = 100
+
+# Purely word-count-based exceptions: articles, conjunctions, prepositions,
+# pronouns, being/auxiliary verbs, and a handful of dialogue-tag verbs so common
+# ("said", "asked") that policing them would make ordinary dialogue impossible to
+# write. Character/place names get their own exemption below -- not by name (we
+# never see one explicitly), but by a proper-noun heuristic.
+_STOPWORDS = frozenset({
+    "a", "an", "the", "and", "but", "or", "nor", "so", "yet", "for",
+    "of", "in", "on", "at", "to", "from", "by", "with", "about", "against",
+    "between", "into", "through", "during", "before", "after", "above", "below",
+    "up", "down", "over", "under", "again", "further", "then", "once", "here",
+    "there", "all", "any", "both", "each", "few", "more", "most", "other",
+    "some", "such", "only", "own", "same", "than", "too", "very", "just",
+    "i", "me", "my", "myself", "we", "our", "ours", "ourselves",
+    "you", "your", "yours", "yourself", "yourselves",
+    "he", "him", "his", "himself", "she", "her", "hers", "herself",
+    "it", "its", "itself", "they", "them", "their", "theirs", "themselves",
+    "this", "that", "these", "those", "who", "whom", "whose", "which", "what",
+    "am", "is", "are", "was", "were", "be", "been", "being",
+    "have", "has", "had", "having", "do", "does", "did", "doing",
+    "will", "would", "shall", "should", "can", "could", "may", "might", "must",
+    "not", "no", "as", "if", "because", "while", "although", "though",
+    "since", "unless", "until", "whether", "said", "asked", "replied",
+})
+
+
+def _likely_proper_nouns(text: str) -> set:
+    """Heuristic, not a real NER pass -- and deliberately biased toward precision
+    over recall, since the two failure directions aren't symmetric: missing a real
+    name just costs one wasted retry, but mistaking an ordinary repeated word (the
+    actual thing this whole check exists to catch) for a name would silently
+    defeat the feature. A capitalized word that appears in a NON-sentence-initial
+    position at least once is a strong, reliable signal of a genuine proper noun --
+    ordinary common nouns essentially never get capitalized mid-sentence in
+    English. (Tried a "capitalized and recurs 2+ times" version first; it
+    correctly caught a name that only ever opened sentences, but then also
+    exempted "Shadows" for the same reason when it was actually the exact
+    over-used word this check needs to catch -- confirmed live, worse trade.)"""
+    names = set()
+    for sentence in _SENTENCE_SPLIT_RE.split(text.strip()):
+        words = _WORD_RE.findall(sentence)
+        for word in words[1:]:
+            if word[:1].isupper():
+                names.add(word.lower())
+    return names
+
+
+def _repeated_content_words(text: str, story_so_far: str) -> list:
+    """A prompt-only version of this rule (REPETITION_GUIDELINE in prompts.py)
+    wasn't reliable enough on its own -- confirmed live, the same generation that
+    produced the sentence-fragment collapse also repeated "shadows" and "fingers"
+    over and over. This is the mechanical backstop the user actually asked for:
+    strictly no content word repeated within the last ~100 words, excluding
+    stopwords and likely names. Checks both against the story so far AND within
+    this beat's own text (a beat can self-repeat in ~20 words on its own)."""
+    if not text.strip():
+        return []
+    recent_words = _WORD_RE.findall(story_so_far.strip())[-REPETITION_WINDOW_WORDS:]
+    recent_lower = {w.lower() for w in recent_words}
+    # Recurrence has to be checked across the combined text -- a name appearing
+    # once in the story so far and once in this new beat is still a recurring
+    # name, but neither half alone would show 2+ occurrences on its own.
+    names = _likely_proper_nouns(f"{story_so_far} {text}")
+
+    seen_in_beat = set()
+    violations = []
+    for word in _WORD_RE.findall(text):
+        lw = word.lower()
+        if lw in _STOPWORDS or lw in names:
+            continue
+        if lw in recent_lower or lw in seen_in_beat:
+            violations.append(lw)
+        seen_in_beat.add(lw)
+    return violations
+
+
 def _gemini_retry_delay_seconds(exc: Exception) -> float:
     """Google's 429 RESOURCE_EXHAUSTED error usually carries a suggested wait as a
     RetryInfo detail (e.g. "19s"); use it when present rather than guessing blind."""
@@ -162,12 +240,17 @@ def generate_beat(req) -> dict:
             text = trim_to_last_sentence(text)
 
         is_duplicate = bool(text) and _duplicates_story_tail(text, req.story_so_far)
-        if (text or concluded_by_sentinel) and not is_duplicate:
+        repeated_words = _repeated_content_words(text, req.story_so_far) if text else []
+        if (text or concluded_by_sentinel) and not is_duplicate and not repeated_words:
             break
+        reason = (
+            "duplicated the story's tail" if is_duplicate
+            else f"repeated word(s) {repeated_words}" if repeated_words
+            else "empty text"
+        )
         logger.warning(
             "beat retry %d/%d (engine=%s): %s",
-            attempt + 1, MAX_EMPTY_BEAT_RETRIES + 1, req.engine,
-            "duplicated the story's tail" if is_duplicate else "empty text",
+            attempt + 1, MAX_EMPTY_BEAT_RETRIES + 1, req.engine, reason,
         )
 
     if not text and not concluded_by_sentinel:

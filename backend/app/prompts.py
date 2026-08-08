@@ -242,11 +242,15 @@ def _rhythm_correction_instruction(story_so_far: str) -> str:
 # generation.py only catches exact repeats of the last sentence; this is closer
 # and slower, a few words at a time, so it never triggers that.
 REPETITION_GUIDELINE = (
-    "Do not center this sentence on the same core image, noun, or verb the "
-    "immediately preceding sentence centered on (e.g. more shadows right after "
-    "shadows, more fingers right after fingers). Every new sentence must add "
-    "something genuinely new -- a sound, a piece of dialogue, a physical action, "
-    "a fact, a character's thought -- not the same idea restated in different words."
+    "Strict rule: do not reuse any word within the last ~100 words of the story "
+    "(ordinary connecting words -- a, the, and, was, said, and the like -- and "
+    "established character/place names are the only exceptions). If a word has "
+    "appeared recently, use a different one -- a synonym, a more specific detail, "
+    "or restructure the sentence around something else entirely. This is checked "
+    "mechanically after you write, not just a suggestion: a sentence that reuses a "
+    "recent word gets thrown out and regenerated. Every new sentence must add "
+    "something genuinely new -- a sound, a piece of dialogue, a physical action, a "
+    "fact, a character's thought -- never the same idea restated in different words."
 )
 
 # Confirmed live: a full character name reappearing in nearly every line, when real
