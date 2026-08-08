@@ -182,21 +182,71 @@ DIALOGUE_PACING_GUIDELINE = (
 # Confirmed live: with each beat capped at ~120 characters, some models default to
 # writing one complete, similarly-sized declarative sentence every single time --
 # after enough beats it reads as a flat list of same-length statements rather than
-# prose with any rhythm. This is the direct countermeasure, not a hypothetical.
-# Explicit word-count anchors (3-4 vs. 30+), not just "vary it," because a vague
-# instruction wasn't enough on its own -- and since a 30-word sentence physically
-# can't fit inside one ~120-character beat, this only works if it's explicit that
-# ending a beat mid-clause (to be picked up, not restarted, next beat) is expected.
+# prose with any rhythm. An earlier version of this guideline pushed hard for 3-4
+# word sentences as one routine mode -- also confirmed live, on Groq/Llama: it
+# overcorrected into EVERY sentence being a 2-5 word fragment ("Darkness crept.
+# Shadows lengthened. Silence fell. Shadows danced.[...]"), which then curdled into
+# repetition too, since a fragment has no room to add anything actually new. Each
+# beat is generated in isolation with no memory of its own recent rhythm, so it
+# can't "alternate" on its own -- it just picks a mode and stays there. Normal
+# length is now the explicit default; short is the occasional exception, not a
+# coin flip. See _rhythm_correction_instruction below for the live backstop.
 RHYTHM_VARIETY_GUIDELINE = (
-    "Vary sentence length aggressively across the piece -- a real mixture, not a "
-    "gentle one: some sentences just 3-4 words, blunt and complete in themselves; "
-    "others sprawling past 30 words, piling on clauses and asides before they finally "
-    "resolve. A beat is capped at ~120 characters, so a long sentence will not fit in "
-    "a single beat -- that's expected. Let it run on and end the beat mid-clause "
-    "rather than forcing a full stop, then continue that same sentence in the next "
-    "beat (never restart or recap it). A short sentence, by contrast, should end "
-    "complete within its own beat. Don't let every beat read as one tidy, "
-    "self-contained, similarly-sized sentence -- that reads as a list, not a story."
+    "Sentence length: the DEFAULT is a normal, fully-developed sentence (roughly "
+    "10-20 words) that adds real new information or sensory detail -- not a "
+    "fragment. Only occasionally, for a specific moment of punch, let a single "
+    "sentence run short (3-6 words); even more occasionally, let one run long "
+    "(25+ words, spilling past the beat boundary into the next beat, picked up "
+    "there rather than restarted). Short sentences are a deliberate, rare device, "
+    "not the default rhythm -- a run of them back to back reads as a list, not "
+    "prose, and gives you no room to actually develop anything."
+)
+
+# Confirmed live: the guideline above wasn't enough on its own to stop Llama on
+# Groq collapsing into all-short-fragments -- a model generating each beat in
+# isolation has no way to see "I've written four short ones in a row" unless
+# told. Same pattern as the dialogue-streak escalation below: a soft standing
+# rule, backstopped by a hard override once the story has actually drifted.
+SHORT_SENTENCE_WORD_THRESHOLD = 6
+SHORT_SENTENCE_STREAK_LOOKBACK = 5
+SHORT_SENTENCE_STREAK_TRIGGER = 3
+
+
+def _trailing_short_sentence_streak(story_so_far: str) -> int:
+    sentences = [s for s in _SENTENCE_SPLIT_RE.split(story_so_far.strip()) if s.strip()]
+    streak = 0
+    for sentence in reversed(sentences[-SHORT_SENTENCE_STREAK_LOOKBACK:]):
+        if len(sentence.split()) <= SHORT_SENTENCE_WORD_THRESHOLD:
+            streak += 1
+        else:
+            break
+    return streak
+
+
+def _rhythm_correction_instruction(story_so_far: str) -> str:
+    streak = _trailing_short_sentence_streak(story_so_far)
+    if streak < SHORT_SENTENCE_STREAK_TRIGGER:
+        return ""
+    return (
+        f"\nThe last {streak} sentences have all been short fragments -- it's curdled "
+        f"into a choppy list, not prose. This line MUST be a normal, fully-developed "
+        f"sentence (at least 12 words) that adds real new information, not another "
+        f"blunt restatement of what's already been said."
+    )
+
+
+# Confirmed live, in the same generation that produced the fragment problem above:
+# heavy word/image repetition across consecutive beats ("Shadows... Shadows...
+# Shadows...", "Fingers... Fingers... Fingers...") -- each beat paraphrasing the
+# same idea instead of adding anything new. The existing duplicate-beat retry in
+# generation.py only catches exact repeats of the last sentence; this is closer
+# and slower, a few words at a time, so it never triggers that.
+REPETITION_GUIDELINE = (
+    "Do not center this sentence on the same core image, noun, or verb the "
+    "immediately preceding sentence centered on (e.g. more shadows right after "
+    "shadows, more fingers right after fingers). Every new sentence must add "
+    "something genuinely new -- a sound, a piece of dialogue, a physical action, "
+    "a fact, a character's thought -- not the same idea restated in different words."
 )
 
 # Confirmed live: a full character name reappearing in nearly every line, when real
@@ -312,6 +362,8 @@ FIXED SETUP (do not deviate from these for the whole story):
 
 {RHYTHM_VARIETY_GUIDELINE}
 
+{REPETITION_GUIDELINE}
+
 {CHARACTER_REFERENCE_GUIDELINE}
 
 {SAFETY_GOVERNOR}
@@ -331,5 +383,5 @@ FOOT PEDALS (continuous, 0-10) -- also read fresh for every line:
 {_coherence_instruction(req.tense)}
 
 {_continuation_instruction(req.story_so_far, remaining_words, req.target_words)}
-{end_sentinel_instruction}{_dialogue_pacing_instruction(req.story_so_far)}
+{end_sentinel_instruction}{_dialogue_pacing_instruction(req.story_so_far)}{_rhythm_correction_instruction(req.story_so_far)}
 """.strip()
