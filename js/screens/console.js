@@ -7,7 +7,7 @@ window.Grammatizer = window.Grammatizer || {};
 Grammatizer.screenConsole = (function () {
   const ENGINE_MODEL_NAMES = {
     gemini: "gemini-flash-lite-latest",
-    groq: "llama-3.3-70b-versatile",
+    groq: "qwen/qwen3.6-27b", // keep in sync with backend/app/engines.py's ENGINES["groq"]["model"]
   };
 
   let els = {};
@@ -50,6 +50,7 @@ Grammatizer.screenConsole = (function () {
       manuscriptPaper: document.getElementById("manuscript-paper"),
       manuscriptPlaceholder: document.getElementById("manuscript-placeholder"),
       manuscriptLetterhead: document.getElementById("manuscript-letterhead"),
+      manuscriptTitle: document.getElementById("manuscript-title"),
       manuscriptAgency: document.getElementById("manuscript-agency"),
       manuscriptByline: document.getElementById("manuscript-byline"),
       manuscriptTextContent: document.getElementById("manuscript-text-content"),
@@ -66,6 +67,7 @@ Grammatizer.screenConsole = (function () {
       stopBtn: document.getElementById("btn-stop"),
       bindArchiveBtn: document.getElementById("btn-bind-archive"),
       switchEngineLink: document.getElementById("switch-engine-link"),
+      tryAgainBtn: document.getElementById("btn-try-again"),
       newManuscriptBtn: document.getElementById("btn-new-manuscript"),
       forgetMeBtn: document.getElementById("btn-forget-me"),
       consoleError: document.getElementById("console-error"),
@@ -77,6 +79,7 @@ Grammatizer.screenConsole = (function () {
     els.pullLeverBtn.addEventListener("click", handlePullLever);
     els.pauseBtn.addEventListener("click", handleTogglePause);
     els.stopBtn.addEventListener("click", handleStop);
+    els.tryAgainBtn.addEventListener("click", handleTryAgain);
     els.newManuscriptBtn.addEventListener("click", handleNewManuscript);
     els.switchEngineLink.addEventListener("click", (e) => { e.preventDefault(); handleSwitchEngine(); });
     els.bindArchiveBtn.addEventListener("click", handleBindArchive);
@@ -255,33 +258,49 @@ Grammatizer.screenConsole = (function () {
   }
 
   function startComposing(setup) {
-    composing = true;
-    lastRun = { setup, storyText: "", wordCount: 0 };
+    lastRun = { setup, storyText: "", wordCount: 0, title: "" };
     autoScrollEnabled = true; // a fresh manuscript always starts by following
 
     engageLever();
     lockSetup(true);
     els.pullLeverBtn.hidden = true;
-    els.pauseBtn.hidden = false;
-    els.pauseBtn.textContent = "Pause";
-    els.stopBtn.hidden = false;
-    els.bindArchiveBtn.hidden = true;
-    els.switchEngineLink.hidden = true;
-    els.newManuscriptBtn.hidden = true;
-    setDialsInert(false);
-    hideDialsPending();
-    els.dialLcd.classList.add("is-active"); // the LCD only ticks over while the machine is actually running
 
     resetManuscriptDom();
+    els.manuscriptTitle.hidden = true;
+    els.manuscriptTitle.textContent = "";
     els.manuscriptAgency.textContent = setup.agency_name || "The Great Automatic Grammatizator";
     els.manuscriptByline.textContent = setup.user_name
       ? `Manufactured for ${setup.user_name} — ${new Date().toLocaleDateString()}`
       : `Manufactured automatically — ${new Date().toLocaleDateString()}`;
 
-    setStatus("composing", "The machine is writing... 0 words");
+    beginComposition("");
+  }
+
+  // Shared by a fresh "Pull Lever" (resumeText "") and "Try Again" after a jam
+  // (resumeText = whatever prose already made it onto the page). A jam is a
+  // failed *next beat*, not a corrupted manuscript -- the backend is stateless
+  // and the frontend already holds every word composed so far, so recovering is
+  // just handing that same text to a fresh controller and letting it fetch the
+  // next beat, not starting over.
+  function beginComposition(resumeText) {
+    composing = true;
+    els.pauseBtn.hidden = false;
+    els.pauseBtn.textContent = "Pause";
+    els.stopBtn.hidden = false;
+    els.bindArchiveBtn.hidden = true;
+    els.switchEngineLink.hidden = true;
+    els.tryAgainBtn.hidden = true;
+    els.newManuscriptBtn.hidden = true;
+    els.manuscriptWriteHead.hidden = false;
+    setDialsInert(false);
+    hideDialsPending();
+    els.dialLcd.classList.add("is-active"); // the LCD only ticks over while the machine is actually running
+
+    setStatus("composing", `The machine is writing... ${countWords(resumeText)} / ${lastRun.setup.target_words} words`);
 
     composerController = Grammatizer.composer.createController({
-      setup,
+      setup: lastRun.setup,
+      initialText: resumeText,
       getDials: collectDials,
       // Tracked continuously (not just at conclusion) so Stop always has the exact
       // text on screen, including a beat that was only partway revealed.
@@ -289,7 +308,7 @@ Grammatizer.screenConsole = (function () {
         lastRun.storyText = text;
         renderManuscriptText(text);
         if (!composerController.isPaused()) {
-          setStatus("composing", `The machine is writing... ${countWords(text)} / ${setup.target_words} words`);
+          setStatus("composing", `The machine is writing... ${countWords(text)} / ${lastRun.setup.target_words} words`);
         }
       },
       onWordCount: (n) => {
@@ -302,6 +321,12 @@ Grammatizer.screenConsole = (function () {
       onDialsApplied: () => completeDialsPending(),
     });
     composerController.start();
+  }
+
+  function handleTryAgain() {
+    if (!lastRun) return;
+    clearError();
+    beginComposition(lastRun.storyText || "");
   }
 
   function handleTogglePause() {
@@ -332,7 +357,9 @@ Grammatizer.screenConsole = (function () {
     setStatus("concluded", `Manuscript stopped — ${lastRun.wordCount} words.`);
     els.bindArchiveBtn.hidden = false;
     els.switchEngineLink.hidden = true;
+    els.tryAgainBtn.hidden = true;
     els.newManuscriptBtn.hidden = false;
+    requestTitle();
   }
 
   function handleConcluded(fullText) {
@@ -347,7 +374,37 @@ Grammatizer.screenConsole = (function () {
     setStatus("concluded", `Manuscript complete — ${lastRun.wordCount} words.`);
     els.bindArchiveBtn.hidden = false;
     els.switchEngineLink.hidden = true;
+    els.tryAgainBtn.hidden = true;
     els.newManuscriptBtn.hidden = false;
+    requestTitle();
+  }
+
+  // Titling only makes sense once there's actual content to read (per the user's
+  // own framing: a title based on the content), and only fires once composition
+  // has stopped -- deliberately not woven into the live beat loop, since it's a
+  // one-shot summary judgment, not something that needs to track a story that's
+  // still changing underneath it. Best-effort: if it fails (bad key, engine hiccup,
+  // manuscript too short to bother), the letterhead just quietly keeps showing the
+  // agency name instead -- never blocks Bind & Archive or shows an error banner
+  // over what is, cosmetically, a nice-to-have.
+  const TITLE_MIN_WORDS = 15;
+
+  async function requestTitle() {
+    const run = lastRun;
+    if (!run || countWords(run.storyText) < TITLE_MIN_WORDS) return;
+    try {
+      const { title } = await Grammatizer.api.generateTitle({
+        engine: run.setup.engine,
+        api_key: run.setup.api_key,
+        story: run.storyText,
+      });
+      if (lastRun !== run || !title) return; // stale (a new/forgotten manuscript started while this was in flight)
+      run.title = title;
+      els.manuscriptTitle.textContent = title;
+      els.manuscriptTitle.hidden = false;
+    } catch (err) {
+      // Silent by design -- see comment above.
+    }
   }
 
   function handleComposeError(err) {
@@ -367,8 +424,13 @@ Grammatizer.screenConsole = (function () {
 
     setStatus("jammed", (err && err.message) || "The machine has jammed.");
     els.newManuscriptBtn.hidden = false;
+    // The manuscript itself isn't lost -- every word composed so far is still
+    // right there on the page -- so the primary recovery is always "try the next
+    // beat again," not "start over." New Manuscript stays as the explicit escape
+    // hatch for anyone who'd rather abandon it.
+    els.tryAgainBtn.hidden = false;
     // This engine specifically is the problem (its own rate limit or an outage) --
-    // offer a direct way back to the engine picker, not just a same-engine retry.
+    // offer a direct way back to the engine picker too, not just a same-engine retry.
     els.switchEngineLink.hidden = !(err && (err.code === "rate_limited" || err.code === "engine_overloaded"));
   }
 
@@ -396,12 +458,15 @@ Grammatizer.screenConsole = (function () {
     els.stopBtn.hidden = true;
     els.bindArchiveBtn.hidden = true;
     els.switchEngineLink.hidden = true;
+    els.tryAgainBtn.hidden = true;
     els.newManuscriptBtn.hidden = true;
     hideStatus();
     clearError();
 
     els.manuscriptPlaceholder.hidden = false;
     els.manuscriptLetterhead.hidden = true;
+    els.manuscriptTitle.hidden = true;
+    els.manuscriptTitle.textContent = "";
     els.manuscriptTextContent.textContent = "";
     els.manuscriptPaper.scrollTop = 0;
   }
@@ -422,6 +487,7 @@ Grammatizer.screenConsole = (function () {
     try {
       const blob = await Grammatizer.api.exportPdf({
         story: lastRun.storyText,
+        title: lastRun.title || "",
         user_name: lastRun.setup.user_name,
         agency_name: lastRun.setup.agency_name,
         engine: lastRun.setup.engine,
@@ -432,7 +498,7 @@ Grammatizer.screenConsole = (function () {
       const a = document.createElement("a");
       a.href = url;
       const nameParts = [
-        "grammatizator-manuscript",
+        slugifyForFilename(lastRun.title || "") || "grammatizator-manuscript",
         slugifyForFilename(lastRun.setup.agency_name || ""),
         slugifyForFilename(lastRun.setup.user_name || ""),
       ].filter(Boolean);

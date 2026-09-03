@@ -6,15 +6,23 @@ thing as a finished-then-replaced story; there's only ever 'the next line'."""
 import logging
 import re
 import time
+from collections import Counter
 
 from . import engines
 from .errors import GenerationError, translate_exception
-from .prompts import END_SENTINEL, NEAR_END_WORDS, OVERRUN_WORDS, build_beat_prompt
+from .prompts import END_SENTINEL, NEAR_END_WORDS, OVERRUN_WORDS, build_beat_prompt, build_title_prompt
+
+MAX_TITLE_TOKENS = 20
+_TITLE_WRAP_RE = re.compile(r'^[\s"\'“”‘’]+|[\s"\'“”‘’.]+$')
 
 logger = logging.getLogger("grammatizator")
 
-MAX_TOKENS_NORMAL = 90
-MAX_TOKENS_CONCLUDING = 120
+# Sized for the ~50-70 word/beat target in prompts.py (roughly 1.3 tokens/word in
+# English, so ~70 words is ~90 tokens on its own) with real headroom above that --
+# the model isn't hard-capped, only instructed, and trim_to_last_sentence below
+# needs a complete sentence to trim back to rather than a mid-thought cutoff.
+MAX_TOKENS_NORMAL = 220
+MAX_TOKENS_CONCLUDING = 260
 
 # The beat-loop architecture is, by design, many small calls rather than one big one
 # (see the plan) -- which means free-tier per-minute rate limits are a real, expected
@@ -25,9 +33,28 @@ RETRY_WAIT_CAP_SECONDS = 10.0
 DEFAULT_RETRY_WAIT_SECONDS = 5.0
 
 # A blank completion that isn't a sentinel-only conclusion (see generate_beat) is
-# usually a one-off bad roll, not systemic -- worth a couple of quick retries before
-# failing the whole manuscript over it.
-MAX_EMPTY_BEAT_RETRIES = 2
+# usually a one-off bad roll, not systemic -- worth a retry before failing the whole
+# manuscript over it. Deliberately just 1 (2 attempts total), not 2 -- confirmed live,
+# a beat that's still failing after one retry (with the specific violation fed back
+# into the prompt, see generate_beat) rarely resolves on a third identical roll of the
+# dice either; the extra attempt was mostly just adding a full API round-trip of
+# latency ("hangs... every few sentences") for beats that got accepted as-is anyway.
+MAX_EMPTY_BEAT_RETRIES = 1
+
+# Two independent retry layers exist here: _call_engine_with_retry retries transient
+# rate-limit/overload failures (up to ~20s of sleeping across its own attempts), and
+# generate_beat's own loop separately retries a beat that came back empty/duplicated/
+# over-repetitive. Each was capped on its own, but nothing capped them TOGETHER --
+# confirmed live ("machine jammed" after 122 words): a beat that hit a rate limit AND
+# then also tripped the repetition check burned both retry budgets back-to-back,
+# comfortably exceeding the frontend's 45s timeout even though each layer individually
+# looked bounded. A single wall-clock deadline, threaded through both layers, is the
+# actual fix -- once time's up, stop retrying and either accept the best text already
+# in hand or fail fast with a real error, never silently outlast the frontend's own
+# timeout. Set well under the frontend's BEAT_TIMEOUT_MS (45s) / TITLE_TIMEOUT_MS (20s)
+# in js/api.js to leave headroom for network round-trip and JSON overhead.
+BEAT_TIME_BUDGET_SECONDS = 30.0
+TITLE_TIME_BUDGET_SECONDS = 15.0
 
 _SENTENCE_END_RE = re.compile(r'[.!?]["\')’”]?(?:\s|$)')
 _GEMINI_RETRY_DELAY_RE = re.compile(r"([\d.]+)\s*s")
@@ -59,11 +86,34 @@ def _duplicates_story_tail(text: str, story_so_far: str) -> bool:
 _WORD_RE = re.compile(r"[A-Za-z']+")
 REPETITION_WINDOW_WORDS = 100
 
+# A word is only flagged once it's about to become its THIRD occurrence in the
+# window -- one incidental reuse is normal prose, and for a scene-central noun it's
+# often unavoidable (a scene that's genuinely about a goose is going to say "goose"
+# more than once). Confirmed live: a strict "flag on any repeat" rule was catching
+# words like "goose", "honking", "gravel" that a 70B model can't actually stop
+# reusing, which burned the full retry budget every time for zero improvement in
+# the text that finally got accepted -- pure latency, no benefit. Flagging the
+# third+ occurrence still catches genuine fixation (the same word landing 3, 4, 5+
+# times) while leaving normal, necessary reuse alone.
+REPETITION_TOLERANCE = 2
+
+# Names are no longer exempt from repetition checking at all -- confirmed live,
+# one name landed 8 times in 80 words, reading as robotic ("Ezra did X. Ezra did
+# Y. Ezra did Z.") rather than natural prose, which leans on pronouns and
+# epithets most of the time. A prompt-only version of this already exists
+# (CHARACTER_REFERENCE_GUIDELINE in prompts.py) but wasn't reliable enough alone
+# -- same lesson as REPETITION_TOLERANCE above. Held to the same 3rd-occurrence
+# bar as an ordinary word, on the user's explicit instruction -- kept as its own
+# constant (rather than just reusing REPETITION_TOLERANCE) in case that turns
+# out to be too strict for names specifically and needs independent tuning later.
+NAME_REPETITION_TOLERANCE = 2
+
 # Purely word-count-based exceptions: articles, conjunctions, prepositions,
 # pronouns, being/auxiliary verbs, and a handful of dialogue-tag verbs so common
 # ("said", "asked") that policing them would make ordinary dialogue impossible to
-# write. Character/place names get their own exemption below -- not by name (we
-# never see one explicitly), but by a proper-noun heuristic.
+# write. Character/place names are handled separately above (NAME_REPETITION_TOLERANCE)
+# -- not exempt -- identified not by name (we never see one explicitly) but by a
+# proper-noun heuristic.
 _STOPWORDS = frozenset({
     "a", "an", "the", "and", "but", "or", "nor", "so", "yet", "for",
     "of", "in", "on", "at", "to", "from", "by", "with", "about", "against",
@@ -84,6 +134,18 @@ _STOPWORDS = frozenset({
 })
 
 
+def _normalize_word_form(word: str) -> str:
+    """Collapses a possessive ('Gerald's') down to its root ('gerald') so it reads
+    as the same word as the bare form. Confirmed live as a real bug, not
+    hypothetical: without this, a name's possessive form is a different token from
+    the plain name _likely_proper_nouns actually recognized, so it dodges the name
+    exemption entirely and gets flagged as excessive repetition it can never stop
+    triggering -- every later reference to something that character owns reuses
+    the same un-exemptable token, burning the full retry budget on an unwinnable
+    check."""
+    return re.sub(r"'s$", "", word.lower())
+
+
 def _likely_proper_nouns(text: str) -> set:
     """Heuristic, not a real NER pass -- and deliberately biased toward precision
     over recall, since the two failure directions aren't symmetric: missing a real
@@ -101,7 +163,7 @@ def _likely_proper_nouns(text: str) -> set:
         words = _WORD_RE.findall(sentence)
         for word in words[1:]:
             if word[:1].isupper():
-                names.add(word.lower())
+                names.add(_normalize_word_form(word))
     return names
 
 
@@ -109,28 +171,31 @@ def _repeated_content_words(text: str, story_so_far: str) -> list:
     """A prompt-only version of this rule (REPETITION_GUIDELINE in prompts.py)
     wasn't reliable enough on its own -- confirmed live, the same generation that
     produced the sentence-fragment collapse also repeated "shadows" and "fingers"
-    over and over. This is the mechanical backstop the user actually asked for:
-    strictly no content word repeated within the last ~100 words, excluding
-    stopwords and likely names. Checks both against the story so far AND within
-    this beat's own text (a beat can self-repeat in ~20 words on its own)."""
+    over and over. This is the mechanical backstop the user actually asked for: no
+    word repeated to excess within the last ~100 words, excluding stopwords.
+    Likely names get a separate, more lenient tolerance rather than being exempt
+    (see NAME_REPETITION_TOLERANCE). Checks both against the story so far AND
+    within this beat's own text (a beat can self-repeat in ~20 words on its own)."""
     if not text.strip():
         return []
     recent_words = _WORD_RE.findall(story_so_far.strip())[-REPETITION_WINDOW_WORDS:]
-    recent_lower = {w.lower() for w in recent_words}
+    recent_counts = Counter(_normalize_word_form(w) for w in recent_words)
     # Recurrence has to be checked across the combined text -- a name appearing
     # once in the story so far and once in this new beat is still a recurring
     # name, but neither half alone would show 2+ occurrences on its own.
     names = _likely_proper_nouns(f"{story_so_far} {text}")
 
-    seen_in_beat = set()
+    seen_in_beat = Counter()
     violations = []
     for word in _WORD_RE.findall(text):
-        lw = word.lower()
-        if lw in _STOPWORDS or lw in names:
+        lw = _normalize_word_form(word)
+        if lw in _STOPWORDS:
             continue
-        if lw in recent_lower or lw in seen_in_beat:
+        tolerance = NAME_REPETITION_TOLERANCE if lw in names else REPETITION_TOLERANCE
+        prior_occurrences = recent_counts[lw] + seen_in_beat[lw]
+        if prior_occurrences >= tolerance:
             violations.append(lw)
-        seen_in_beat.add(lw)
+        seen_in_beat[lw] += 1
     return violations
 
 
@@ -149,13 +214,21 @@ def _gemini_retry_delay_seconds(exc: Exception) -> float:
     return DEFAULT_RETRY_WAIT_SECONDS
 
 
-RETRYABLE_CODES = {"rate_limited", "engine_overloaded"}
+RETRYABLE_CODES = {"rate_limited", "engine_overloaded", "content_filtered"}
 
 
-def _call_engine_with_retry(engine_key: str, api_key: str, prompt: str, temperature: float, max_tokens: int):
+def _call_engine_with_retry(
+    engine_key: str, api_key: str, prompt: str, temperature: float, max_tokens: int, deadline: float = None
+):
     """Wraps engines.call_engine with a short retry loop for transient failures --
     the caller's own rate limit, or the provider's infrastructure being overloaded.
-    Any other failure is classified and raised immediately."""
+    Any other failure is classified and raised immediately.
+
+    `deadline` (a time.monotonic() cutoff, optional) bounds how long this loop will
+    keep sleeping-and-retrying -- see BEAT_TIME_BUDGET_SECONDS above for why a caller
+    with its own outer retry loop needs this. Without it, this function's own retries
+    are individually capped but blind to how much time an enclosing loop has already
+    spent, which is exactly what let latency stack past the frontend's timeout."""
     attempt = 0
     while True:
         try:
@@ -169,9 +242,21 @@ def _call_engine_with_retry(engine_key: str, api_key: str, prompt: str, temperat
             known_long_wait = (
                 mapped.retry_after_seconds is not None and mapped.retry_after_seconds > RETRY_WAIT_CAP_SECONDS
             )
-            if mapped.code in RETRYABLE_CODES and attempt < MAX_RATE_LIMIT_RETRIES and not known_long_wait:
+            # A content-filter block isn't a rate to wait out -- Google's own guidance
+            # is that the block can be probabilistic, so an immediate retry is a
+            # legitimate second roll of the dice, not a race against the same cause.
+            if mapped.code == "content_filtered":
+                delay = 0.0
+            else:
                 delay = _gemini_retry_delay_seconds(exc) if engine_key == "gemini" else DEFAULT_RETRY_WAIT_SECONDS
                 delay = min(delay, RETRY_WAIT_CAP_SECONDS)
+            out_of_budget = deadline is not None and (time.monotonic() + delay) >= deadline
+            if (
+                mapped.code in RETRYABLE_CODES
+                and attempt < MAX_RATE_LIMIT_RETRIES
+                and not known_long_wait
+                and not out_of_budget
+            ):
                 attempt += 1
                 logger.warning(
                     "%s on %s, retrying in %.1fs (attempt %d/%d)",
@@ -179,6 +264,8 @@ def _call_engine_with_retry(engine_key: str, api_key: str, prompt: str, temperat
                 )
                 time.sleep(delay)
                 continue
+            if out_of_budget:
+                logger.warning("%s on %s, out of time budget -- not retrying", mapped.code, engine_key)
             logger.exception("engine call failed (engine=%s): %s", engine_key, type(exc).__name__)
             raise mapped from exc
 
@@ -222,11 +309,34 @@ def generate_beat(req) -> dict:
     text = ""
     concluded_by_sentinel = False
     finish_reason = None
+    avoid_words = []  # fed back into the prompt on the next attempt only -- see below
+    deadline = time.monotonic() + BEAT_TIME_BUDGET_SECONDS
     for attempt in range(MAX_EMPTY_BEAT_RETRIES + 1):
+        if attempt > 0 and time.monotonic() >= deadline:
+            # No time left for a retry attempt -- accept whatever text the previous
+            # attempt produced (even though it tripped a check) rather than spend the
+            # last of the budget on a call that would just blow the frontend's own
+            # timeout anyway. A slightly-repetitive line beats no line at all.
+            logger.warning("beat retry skipped (engine=%s): out of time budget", req.engine)
+            break
+        attempt_prompt = prompt
+        if avoid_words:
+            # The first version of this loop resent a byte-identical prompt on every
+            # retry -- confirmed live via the backend log, the SAME violating word
+            # ("honking") got flagged on every single attempt of some beats, because
+            # a retry with no new information is really just re-rolling the dice.
+            # Naming the actual offending word(s) gives the model something to
+            # correct, which is what a retry is supposed to be for.
+            attempt_prompt = (
+                f"{prompt}\n\n(Your last attempt at this line over-used the word(s) "
+                f"{', '.join(dict.fromkeys(avoid_words))} -- refer to it differently "
+                "this time: a pronoun or a brief description works if it's a name, a "
+                "synonym or a different detail otherwise. Don't reuse those exact words.)"
+            )
         # Errors raised here are already-mapped GenerationErrors (and already logged
         # server-side, minus the retried rate-limit attempts) -- see _call_engine_with_retry.
         raw_text, finish_reason, _usage_tokens = _call_engine_with_retry(
-            req.engine, api_key, prompt, temperature=req.temperature, max_tokens=max_tokens
+            req.engine, api_key, attempt_prompt, temperature=req.temperature, max_tokens=max_tokens, deadline=deadline
         )
 
         # Trust the sentinel only when the prompt actually offered it (see prompts.py --
@@ -243,6 +353,7 @@ def generate_beat(req) -> dict:
         repeated_words = _repeated_content_words(text, req.story_so_far) if text else []
         if (text or concluded_by_sentinel) and not is_duplicate and not repeated_words:
             break
+        avoid_words = repeated_words
         reason = (
             "duplicated the story's tail" if is_duplicate
             else f"repeated word(s) {repeated_words}" if repeated_words
@@ -266,3 +377,27 @@ def generate_beat(req) -> dict:
         "word_count": new_word_count,
         "concluded": bool(concluded_by_sentinel or forced_conclusion),
     }
+
+
+def generate_title(req) -> dict:
+    """One-shot, called once composition has actually finished -- see
+    build_title_prompt. Deliberately best-effort rather than retry-hardened like
+    generate_beat: a missing title is a cosmetic gap (the letterhead/PDF just fall
+    back to the agency name), not a broken manuscript, so a single engine hiccup
+    here shouldn't cost the reader a multi-attempt wait the way a beat failure
+    would."""
+    api_key = engines.resolve_api_key(req.engine, req.api_key)
+    if not api_key:
+        raise GenerationError(
+            "missing_api_key", "No API key supplied and no server-side fallback configured.", 401
+        )
+
+    prompt = build_title_prompt(req.story)
+    deadline = time.monotonic() + TITLE_TIME_BUDGET_SECONDS
+    raw_text, _finish_reason, _usage_tokens = _call_engine_with_retry(
+        req.engine, api_key, prompt, temperature=0.9, max_tokens=MAX_TITLE_TOKENS, deadline=deadline
+    )
+    # A model asked for "the title only" still sometimes wraps it in quotes or
+    # tacks on a trailing period -- strip that rather than showing it verbatim.
+    title = _TITLE_WRAP_RE.sub("", raw_text.strip().splitlines()[0] if raw_text.strip() else "")
+    return {"title": title}

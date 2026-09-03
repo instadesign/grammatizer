@@ -75,6 +75,16 @@ def translate_exception(engine_key: str, exc: Exception) -> GenerationError:
     type_name = type(exc).__name__
 
     if engine_key == "gemini":
+        if type_name == "ContentFilteredError":
+            # See engines.ContentFilteredError -- deliberately retryable (the same
+            # RETRYABLE_CODES path rate limits use), since the same prompt can pass
+            # on a second attempt rather than being a hard, permanent block.
+            return GenerationError(
+                "content_filtered",
+                "The Safety Governor intervened for this line — the machine will try a different phrasing.",
+                422,
+            )
+
         status = getattr(exc, "code", None)
         reason = _gemini_reason(exc)
         message = str(getattr(exc, "message", "") or "")

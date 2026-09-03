@@ -5,8 +5,8 @@ from fastapi.responses import JSONResponse, Response
 from .config import ALLOWED_ORIGINS
 from .errors import GenerationError
 from .export import render_pdf
-from .generation import generate_beat
-from .schemas import BeatRequest, BeatResponse, PdfExportRequest
+from .generation import generate_beat, generate_title
+from .schemas import BeatRequest, BeatResponse, PdfExportRequest, TitleRequest, TitleResponse
 
 app = FastAPI(title="The Great Automatic Grammatizator")
 
@@ -27,6 +27,17 @@ def health():
 def generate_beat_endpoint(req: BeatRequest):
     try:
         return generate_beat(req)
+    except GenerationError as exc:
+        raise HTTPException(
+            status_code=exc.status_code,
+            detail={"code": exc.code, "message": exc.message},
+        )
+
+
+@app.post("/api/generate/title", response_model=TitleResponse)
+def generate_title_endpoint(req: TitleRequest):
+    try:
+        return generate_title(req)
     except GenerationError as exc:
         raise HTTPException(
             status_code=exc.status_code,

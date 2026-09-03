@@ -94,8 +94,19 @@ class BeatResponse(BaseModel):
 
 class PdfExportRequest(BaseModel):
     story: str = Field(max_length=20000)
+    title: str = Field(default="", max_length=120)
     user_name: str = Field(default="", max_length=80)
     agency_name: str = Field(default="", max_length=80)
     engine: Engine
     model: str
     word_count: int
+
+
+class TitleRequest(BaseModel):
+    engine: Engine
+    api_key: Optional[str] = Field(default=None, max_length=512)
+    story: str = Field(max_length=20000)
+
+
+class TitleResponse(BaseModel):
+    title: str

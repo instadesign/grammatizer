@@ -33,6 +33,36 @@ Grammatizer.composer = (function () {
     return existing + (needsSpace ? " " : "") + beat;
   }
 
+  // The backend already retries transient failures internally (see generation.py's
+  // own retry budget), but that's invisible from here -- a rate limit, a momentary
+  // provider outage, or a plain network blip can still surface as a single failed
+  // fetch. Without this, ANY one of those killed the entire manuscript (confirmed
+  // live, "often fails entirely" -- there was no retry at this layer at all). A
+  // couple of short-backoff attempts here turn most transient hiccups into an
+  // invisible pause instead of a dead story; only a hard, non-transient failure
+  // (bad key) skips straight through, since retrying that can't ever help and only
+  // delays routing the reader back to engine-connect where it's actually fixable.
+  const BEAT_FETCH_MAX_RETRIES = 2;
+  const BEAT_FETCH_RETRY_DELAY_MS = 1500;
+
+  function isRetryableBeatError(err) {
+    return !(err && (err.code === "missing_api_key" || err.code === "invalid_api_key"));
+  }
+
+  function delay(ms) {
+    return new Promise((resolve) => setTimeout(resolve, ms));
+  }
+
+  async function fetchBeatWithRetry(fetchOne, attempt = 0) {
+    try {
+      return await fetchOne();
+    } catch (err) {
+      if (attempt >= BEAT_FETCH_MAX_RETRIES || !isRetryableBeatError(err)) throw err;
+      await delay(BEAT_FETCH_RETRY_DELAY_MS * (attempt + 1));
+      return fetchBeatWithRetry(fetchOne, attempt + 1);
+    }
+  }
+
   /**
    * @param {object} opts
    * @param {object} opts.setup - locked setup fields (engine, api_key, temperature,
@@ -57,7 +87,11 @@ Grammatizer.composer = (function () {
     const charIntervalMs = getCharIntervalMs();
     let cancelled = false;
     let paused = false;
-    let storyText = "";
+    // Resuming after a jammed manuscript (see console.js's "Try Again") starts from
+    // whatever text was already on the page, not from scratch -- the DOM already
+    // shows it, so this just keeps the controller's own notion of the story in sync
+    // with what the reader can already see, rather than re-typing it.
+    let storyText = opts.initialText || "";
 
     // Beat/generation tracking, purely for reporting genuine dial-change progress --
     // unrelated to the actual generation logic, which doesn't need any of this.
@@ -65,9 +99,14 @@ Grammatizer.composer = (function () {
     let pendingTargetGeneration = null;
 
     function fetchBeat(storySoFar) {
-      const dials = opts.getDials();
-      const payload = Object.assign({}, opts.setup, dials, { story_so_far: storySoFar });
-      return Grammatizer.api.generateBeat(payload);
+      // Dials are read fresh on every actual attempt, retries included -- a dial
+      // moved during a retry's backoff window should still be reflected once the
+      // retry lands, same as it would on a normal fetch-ahead call.
+      return fetchBeatWithRetry(() => {
+        const dials = opts.getDials();
+        const payload = Object.assign({}, opts.setup, dials, { story_so_far: storySoFar });
+        return Grammatizer.api.generateBeat(payload);
+      });
     }
 
     function beginBeatReveal() {

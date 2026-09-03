@@ -522,6 +522,17 @@ input[type="range"]:focus-visible::-webkit-slider-thumb {
   padding-bottom: var(--space-3);
   margin-bottom: var(--space-4);
 }
+/* Only shown once the machine has actually titled the manuscript (after
+   composition finishes) -- absent while writing is still in progress, so the
+   letterhead doesn't visibly jump when it arrives a moment later. */
+.manuscript-title {
+  font-family: var(--font-display);
+  font-weight: 700;
+  font-size: var(--text-lg);
+  color: var(--color-brass);
+  margin-bottom: var(--space-1);
+}
+
 .manuscript-agency {
   font-family: var(--font-display);
   font-weight: 700;

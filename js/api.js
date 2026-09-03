@@ -7,11 +7,16 @@
 window.Grammatizer = window.Grammatizer || {};
 
 Grammatizer.api = (function () {
+  // 127.0.0.1, not "localhost" -- uvicorn's default bind is IPv4-only, but "localhost"
+  // resolves to the IPv6 loopback (::1) first on most systems. When a browser's
+  // IPv6-to-IPv4 fallback doesn't kick in cleanly, that mismatch alone produces a
+  // connection-refused fetch failure (surfaced below as "The machine isn't answering"),
+  // even though the backend is up and curl/other tools connect to it just fine.
   const API_BASE =
     window.GRAMMATIZER_API_BASE !== undefined
       ? window.GRAMMATIZER_API_BASE
       : (window.location.port === "5500" || window.location.protocol === "file:")
-        ? "http://localhost:8000"
+        ? "http://127.0.0.1:8000"
         : "";
 
   // The backend retries transient rate-limit hits internally (up to ~20s of waiting),
@@ -20,6 +25,7 @@ Grammatizer.api = (function () {
   // backend was about to successfully complete.
   const BEAT_TIMEOUT_MS = 45000;
   const PDF_TIMEOUT_MS = 20000;
+  const TITLE_TIMEOUT_MS = 20000;
 
   class ApiError extends Error {
     constructor(code, message, status) {
@@ -89,5 +95,18 @@ Grammatizer.api = (function () {
     }, PDF_TIMEOUT_MS);
   }
 
-  return { generateBeat, exportPdf, ApiError };
+  async function generateTitle(payload) {
+    return withTimeout(async (signal) => {
+      const response = await fetch(`${API_BASE}/api/generate/title`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify(payload),
+        signal,
+      });
+      if (!response.ok) throw await parseErrorBody(response);
+      return response.json();
+    }, TITLE_TIMEOUT_MS);
+  }
+
+  return { generateBeat, exportPdf, generateTitle, ApiError };
 })();

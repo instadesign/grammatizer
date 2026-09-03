@@ -1,7 +1,11 @@
-"""Builds the prompt for a single beat/line. Each beat is short by design (~120
-characters on screen) — see generation.py for the graduated tiers that steer the model
-toward a conclusion as the word budget runs out, and the [[END]] sentinel that lets it
-signal an early, organic conclusion."""
+"""Builds the prompt for a single beat. Each beat targets roughly 50-70 words (grown
+from an original ~20-word/120-character size -- see generation.py's BEAT_TIME_BUDGET
+comment and the project plan for why: fewer, more substantial beats means fewer total
+API calls per story, which is the direct lever on free-tier rate-limit exposure, and
+gives the model room to write an actual passage instead of one isolated fragment) —
+see generation.py for the graduated tiers that steer the model toward a conclusion as
+the word budget runs out, and the [[END]] sentinel that lets it signal an early,
+organic conclusion."""
 
 import re
 
@@ -12,13 +16,21 @@ _SENTENCE_SPLIT_RE = re.compile(r"(?<=[.!?])\s+")
 DIALOGUE_STREAK_LOOKBACK = 5
 DIALOGUE_STREAK_TRIGGER = 3
 
+# The two concrete example pairs below were added alongside the beat-size increase --
+# confirmed against outside research on LLM fiction-writing prompts: a named author
+# benchmark alone reads as abstract inspiration, easy for a small/fast model to
+# acknowledge without actually acting on; a concrete before/after pair is something
+# to literally pattern-match against instead.
 PROSE_CRAFT_BENCHMARK = (
     "Prose quality benchmark: write with the vividness and control of the best "
     "short-form storytellers -- Dahl's mischievous precision and sting in the tail, "
     "Pratchett's wit and unexpected turn of phrase, Adams' absurdist internal logic, "
     "King's knack for creeping unease -- draw on whichever suits the current Category "
     "and Style/Voice, without imitating any single one of them wholesale. Prefer a "
-    "concrete, sensory detail over a generic one, and a surprising verb over a flat one."
+    "concrete, sensory detail over a generic one, and a surprising verb over a flat "
+    "one -- not \"she was angry\", but \"she set the cup down hard enough to crack the "
+    "saucer\"; not \"he walked across the room\", but \"he crossed the room in three "
+    "long strides\"."
 )
 
 SAFETY_GOVERNOR = (
@@ -75,17 +87,28 @@ ORGAN_STOP_TECHNIQUES = {
 
 
 def _stop_techniques_block(engaged_stops) -> str:
+    """Only names qualities that actually have a technique engaged -- an earlier
+    version printed all five every beat, including a "(not engaged)" placeholder
+    for each unused one. That's pure restatement with no instructive value beyond
+    "these four aren't in play," which a single line covers just as well at a
+    fraction of the length -- worth trimming now that the beat itself carries more
+    text than before (see the module docstring)."""
     engaged = set(engaged_stops)
     lines = []
     for quality, techniques in ORGAN_STOP_TECHNIQUES.items():
         active = [label for stop_id, label in techniques if stop_id in engaged]
-        lines.append(f"- {quality}: " + (", ".join(active) if active else "(not engaged this line)"))
+        if active:
+            lines.append(f"- {quality}: {', '.join(active)}")
+    if not lines:
+        return "(none engaged this line -- don't foreground Tension, Surprise, Humour, Pathos, or Mystery)"
     return "\n".join(lines)
 
 # Tiers, in order of increasing urgency, keyed to words remaining against the target.
-NEAR_END_WORDS = 55   # about 2-3 lines left: start steering toward a close
-FINAL_LINE_WORDS = 22  # about 1 line left: this should be the last line
-OVERRUN_WORDS = 150    # this many words *past* budget: force a close no matter what
+# Rescaled alongside the beat-size increase (~20 -> ~50-70 words/beat) so these still
+# land at the same rough number of REMAINING BEATS, not remaining words at the old size.
+NEAR_END_WORDS = 150   # about 2 beats left: start steering toward a close
+FINAL_LINE_WORDS = 70  # about 1 beat left: this should be the last beat
+OVERRUN_WORDS = 250    # this many words *past* budget: force a close no matter what
 
 
 def _trailing_dialogue_streak(story_so_far: str) -> int:
@@ -142,32 +165,33 @@ def _story_arc_phase(remaining: int, target: int) -> str:
 def _continuation_instruction(story_so_far: str, remaining: int, target: int) -> str:
     if not story_so_far.strip():
         return (
-            "This is the OPENING line. Begin the story immediately -- no title, no "
-            "greeting, no meta-commentary -- with a single vivid line, at most 120 "
-            "characters, that hooks the reader."
+            "This is the OPENING passage. Begin the story immediately -- no title, no "
+            "greeting, no meta-commentary -- with roughly 50-70 words (a short paragraph, "
+            "not a single sentence) that hooks the reader."
         )
     if remaining <= -OVERRUN_WORDS:
         return (
-            "The story has run well past its word budget. This line MUST end the story "
-            "right now, in at most 120 characters, no matter how abrupt -- a clean, "
+            "The story has run well past its word budget. This passage MUST end the "
+            "story right now, in roughly 50-70 words, no matter how abrupt -- a clean, "
             "grammatical close, not a trailed-off fragment."
         )
     if remaining <= FINAL_LINE_WORDS:
         return (
-            "This is the FINAL line. Continue directly from where the story below leaves "
-            "off (no recap, no restart) and bring it to a natural, satisfying conclusion "
-            "matching the Ending setting, in at most 120 characters."
+            "This is the FINAL passage. Continue directly from where the story below "
+            "leaves off (no recap, no restart) and bring it to a natural, satisfying "
+            "conclusion matching the Ending setting, in roughly 50-70 words."
         )
     if remaining <= NEAR_END_WORDS:
         return (
-            "The story should start moving toward its conclusion over the next line or "
-            "two. Continue directly from where it leaves off (no recap, no restart), at "
-            "most 120 characters, beginning to resolve toward the Ending setting."
+            "The story should start moving toward its conclusion over the next passage "
+            "or two. Continue directly from where it leaves off (no recap, no restart), "
+            "roughly 50-70 words, beginning to resolve toward the Ending setting."
         )
     return (
         "Continue directly from where the story below leaves off -- no recap, no restart, "
-        "no repetition of earlier lines -- writing a single line, at most 120 characters, "
-        "that carries the story forward under the CURRENT dial settings below.\n"
+        "no repetition of earlier lines -- writing roughly 50-70 words (a short paragraph, "
+        "several sentences with real rhythm, not one fragment) that carries the story "
+        "forward under the CURRENT dial settings below.\n"
         f"{_story_arc_phase(remaining, target)}"
     )
 
@@ -389,3 +413,34 @@ FOOT PEDALS (continuous, 0-10) -- also read fresh for every line:
 {_continuation_instruction(req.story_so_far, remaining_words, req.target_words)}
 {end_sentinel_instruction}{_dialogue_pacing_instruction(req.story_so_far)}{_rhythm_correction_instruction(req.story_so_far)}
 """.strip()
+
+
+# Word budget for the title generation call itself -- kept well clear of the
+# ~10,000-word manuscript ceiling since only the last stretch of a long story is
+# what actually determines its ending, and the ending is usually what a title
+# ought to reflect or play against.
+TITLE_TAIL_WORDS = 600
+
+
+def build_title_prompt(story: str) -> str:
+    """A separate, one-shot call made once composition has actually finished --
+    titling a story from its content only makes sense after there's content to
+    read, not from the setup levers alone (per the user's own framing: 'once
+    writing has finished, based on the content')."""
+    words = story.split()
+    excerpt = " ".join(words[-TITLE_TAIL_WORDS:]) if len(words) > TITLE_TAIL_WORDS else story
+    return f"""You are the Great Automatic Grammatizator's titling mechanism. Read the
+manuscript below and produce ONE short title for it -- evocative, specific to
+what actually happens in THIS story (not a generic genre label), in the spirit
+of Roald Dahl's own titling (plain nouns given a faint, sly menace: "The Great
+Automatic Grammatizator", "Lamb to the Slaughter", "Man from the South").
+
+Rules:
+- Reply with the title ONLY. No quotation marks, no "Title:", no explanation,
+  no trailing punctuation, no surrounding formatting.
+- 2-7 words.
+- Draw on a concrete detail, image, or turn from the manuscript itself, not a
+  vague summary of its genre.
+
+MANUSCRIPT{"" if excerpt is story else " (final excerpt)"}:
+{excerpt}"""

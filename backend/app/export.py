@@ -52,9 +52,20 @@ def render_pdf(req) -> bytes:
     # version-dependent defaults, or the next call inherits almost no width.
     full_width = dict(new_x=XPos.LMARGIN, new_y=YPos.NEXT)
 
-    pdf.set_font("Fraunces", "", 20)
-    pdf.set_text_color(*INK)
-    pdf.multi_cell(0, 11, _pdf_safe(req.agency_name) or "The Great Automatic Grammatizator", **full_width)
+    title = _pdf_safe(getattr(req, "title", "") or "")
+    if title:
+        pdf.set_font("Fraunces", "", 20)
+        pdf.set_text_color(*INK)
+        pdf.multi_cell(0, 11, title, **full_width)
+
+        pdf.set_font("Literata", "I", 10.5)
+        pdf.set_text_color(*SLATE)
+        agency_line = _pdf_safe(req.agency_name) or "The Great Automatic Grammatizator"
+        pdf.multi_cell(0, 6, agency_line, **full_width)
+    else:
+        pdf.set_font("Fraunces", "", 20)
+        pdf.set_text_color(*INK)
+        pdf.multi_cell(0, 11, _pdf_safe(req.agency_name) or "The Great Automatic Grammatizator", **full_width)
 
     pdf.set_font("Literata", "I", 10.5)
     pdf.set_text_color(*SLATE)
