@@ -1,0 +1,27 @@
+# Render Blueprint for the Grammatizator backend -- https://render.com/docs/blueprint-spec
+#
+# Deploys backend/ as a standalone web service on Render's free tier. BYOK means
+# no server-side Gemini/Groq key belongs here -- each request carries its own key,
+# so there's nothing secret for this service to hold. ALLOWED_ORIGINS is the one
+# real production setting: it locks CORS down to the actual WordPress site rather
+# than the local-dev defaults in backend/app/config.py.
+#
+# To use: in the Render dashboard, New -> Blueprint, point it at this repo/branch.
+# Render reads this file and provisions the service below automatically. Afterwards,
+# add a custom domain (e.g. api.josieandhenry.co.uk) in the service's Settings ->
+# Custom Domains, and point that subdomain at the *.onrender.com host Render gives
+# you via a CNAME record.
+
+services:
+  - type: web
+    name: grammatizer-backend
+    runtime: python
+    plan: free
+    rootDir: backend
+    buildCommand: pip install -r requirements.txt
+    startCommand: uvicorn app.main:app --host 0.0.0.0 --port $PORT
+    envVars:
+      - key: PYTHON_VERSION
+        value: 3.11.9
+      - key: ALLOWED_ORIGINS
+        value: https://josieandhenry.co.uk
