@@ -1,7 +1,7 @@
 # Render Blueprint for the Grammatizator backend -- https://render.com/docs/blueprint-spec
 #
 # Deploys backend/ as a standalone web service on Render's free tier. BYOK means
-# no server-side Gemini/Groq key belongs here -- each request carries its own key,
+# no server-side engine key belongs here -- each request carries its own key,
 # so there's nothing secret for this service to hold. ALLOWED_ORIGINS is the one
 # real production setting: it locks CORS down to the actual WordPress site rather
 # than the local-dev defaults in backend/app/config.py.

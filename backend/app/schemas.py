@@ -7,7 +7,7 @@ from typing import List, Literal, Optional
 
 from pydantic import BaseModel, Field
 
-Engine = Literal["gemini", "groq"]
+Engine = Literal["gemini", "groq", "openai", "claude"]
 
 # Setup panel — locked once composition starts.
 Category = Literal[

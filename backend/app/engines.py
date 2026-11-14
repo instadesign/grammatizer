@@ -2,8 +2,10 @@
 prototype's ENGINES dict / generate_story(), ported essentially unchanged."""
 
 import os
+import re
 from typing import Optional
 
+import anthropic
 from google import genai
 from google.genai import types as genai_types
 from openai import OpenAI
@@ -47,7 +49,57 @@ ENGINES = {
         # not optional, for this specific model.
         "model": "qwen/qwen3.6-27b",
     },
+    "openai": {
+        "env_var": "OPENAI_API_KEY",
+        # What the title page calls ChatGPT. Unlike the two above there is no free
+        # tier: the key has to belong to an API account with credit on it (a ChatGPT
+        # subscription is billed separately and does not count).
+        # Model taken from OpenAI's models page on 14 Nov 2026. The whole GPT-6 line
+        # reasons before it writes; this one is the second tier ("near-Astra
+        # performance ... at a lower cost", $2 in / $10 out per million tokens).
+        # gpt-6-astra is the top model at five times the price; gpt-6-luna is the
+        # cheap one at a twentieth. Changing tier is this one line, plus
+        # ENGINE_MODEL_NAMES in js/screens/console.js (the name printed on the PDF).
+        "model": "gpt-6.1-sol",
+    },
+    "claude": {
+        "env_var": "ANTHROPIC_API_KEY",
+        # Also paid only: needs API credit at platform.claude.com, which a claude.ai
+        # subscription does not include (the reason the keyless Claude engine was
+        # taken out in August; this one is bring-your-own-key like the rest).
+        # $4 in / $20 out per million tokens. claude-sonnet-5-5 is half that and
+        # claude-haiku-5-5 a fortieth; either can be put here as the call stands.
+        "model": "claude-opus-5-5",
+    },
 }
+
+# Both of the paid engines think before they write, and the thinking is billed against
+# the same output limit as the words. So the limit they are given is the caller's
+# max_tokens PLUS this, or a 220-token beat would be spent entirely on thought and come
+# back empty (the same failure the Groq notes above describe). It is a ceiling, not a
+# cost: unused room is not charged for.
+REASONING_HEADROOM_TOKENS = 3000
+
+# generation.py allows a beat 30 seconds in all and has its own retry loop with that
+# deadline, so the SDKs' built-in retries are switched off (two layers of retries
+# stacking is how beats used to outlast the frontend's timeout) and one call may not
+# hang for longer than this.
+ENGINE_TIMEOUT_SECONDS = 25.0
+
+_WORD_RE = re.compile(r"\S+")
+
+
+def _hold_to_budget(text: str, max_tokens: int):
+    """With the headroom above, max_tokens no longer limits how much the engine can
+    WRITE, only how much it can think and write together. This puts the old limit
+    back on the words alone (about three words to four tokens), so every engine hands
+    generation.py the same thing: at most a beat's worth, marked "length" if it had
+    to be cut, for trim_to_last_sentence to tidy."""
+    words = list(_WORD_RE.finditer(text))
+    limit = max(1, int(max_tokens * 0.75))
+    if len(words) <= limit:
+        return text, False
+    return text[: words[limit - 1].end()], True
 
 
 # Finish reasons that mean the provider blocked the candidate outright -- its
@@ -66,7 +118,8 @@ class ContentFilteredError(Exception):
     `response.text`. Google's own guidance is that a block can be probabilistic --
     the same prompt can pass on a retry -- so this is deliberately just another
     condition generate_beat's existing retry loop knows how to handle (see
-    RETRYABLE_CODES in generation.py), not a dead end."""
+    RETRYABLE_CODES in generation.py), not a dead end. The OpenAI and Claude branches
+    raise it too, when the provider declines a line instead of writing it."""
 
     def __init__(self, reason: str):
         self.reason = reason
@@ -83,8 +136,9 @@ def resolve_api_key(engine_key: str, supplied_key: Optional[str]) -> Optional[st
 def call_engine(engine_key: str, api_key: str, prompt: str, temperature: float, max_tokens: int):
     """One completion call. Returns (text, finish_reason, usage_tokens) where
     finish_reason is normalized to 'stop' (finished naturally) or 'length' (cut off
-    by max_tokens). usage_tokens is always None -- both engines here are BYOK, so
-    there's no shared server-side budget to track against it."""
+    by max_tokens). usage_tokens is always None -- every engine here is BYOK, so
+    there's no shared server-side budget to track against it. The two paid engines
+    (openai, claude) take no temperature: their current models reject the setting."""
     engine = ENGINES[engine_key]
 
     if engine_key == "gemini":
@@ -156,5 +210,62 @@ def call_engine(engine_key: str, api_key: str, prompt: str, temperature: float, 
         choice = response.choices[0]
         finish_reason = "stop" if choice.finish_reason == "stop" else "length"
         return (choice.message.content or ""), finish_reason, None
+
+    if engine_key == "openai":
+        # The Responses API, not Chat Completions as on the Groq branch: it is the one
+        # OpenAI recommends for the GPT-6 models. No temperature or presence_penalty:
+        # these models refuse sampling settings whenever reasoning is on, and on this
+        # model it cannot be turned off, only down ("low" is the floor).
+        client = OpenAI(api_key=api_key, timeout=ENGINE_TIMEOUT_SECONDS, max_retries=0)
+        response = client.responses.create(
+            model=engine["model"],
+            input=prompt,
+            reasoning={"effort": "low"},
+            max_output_tokens=max_tokens + REASONING_HEADROOM_TOKENS,
+            # OpenAI otherwise keeps every response for 30 days. Nothing here needs
+            # to be fetched again, and it is somebody's story.
+            store=False,
+        )
+        incomplete = getattr(getattr(response, "incomplete_details", None), "reason", None)
+        if incomplete == "content_filter":
+            raise ContentFilteredError("content_filter")
+        for item in response.output or []:
+            for part in getattr(item, "content", None) or []:
+                if getattr(part, "type", None) == "refusal":
+                    raise ContentFilteredError("refusal")
+        text, cut = _hold_to_budget(response.output_text or "", max_tokens)
+        ran_out = response.status == "incomplete" and incomplete == "max_output_tokens"
+        return text, ("length" if (cut or ran_out) else "stop"), None
+
+    if engine_key == "claude":
+        # No `thinking` and no temperature: on this model thinking is always on and
+        # sampling settings are rejected. `effort` is the one control, and "low" is
+        # plenty for sixty words of prose (the default, "medium", only adds delay).
+        client = anthropic.Anthropic(api_key=api_key, timeout=ENGINE_TIMEOUT_SECONDS, max_retries=0)
+        request = dict(
+            model=engine["model"],
+            max_tokens=max_tokens + REASONING_HEADROOM_TOKENS,
+            output_config={"effort": "low"},
+            messages=[{"role": "user", "content": prompt}],
+        )
+        try:
+            # `fallbacks` asks Anthropic to re-run the line on another of its models,
+            # inside this same call, if this model's safety classifiers decline it:
+            # a jam the reader then never sees. It is a beta option. Should a key's
+            # account not have it (the API answers 400), ask again without it, the
+            # same way the Gemini branch above drops thinking_config; any other cause
+            # of a 400 fails the second time too and is reported as usual.
+            response = client.beta.messages.create(
+                betas=["server-side-fallback-2026-07-01"], fallbacks="default", **request
+            )
+        except anthropic.BadRequestError:
+            response = client.messages.create(**request)
+        if response.stop_reason == "refusal":
+            # Check before reading the content, which is empty or partial here.
+            raise ContentFilteredError("refusal")
+        written = "".join(block.text for block in response.content if block.type == "text")
+        text, cut = _hold_to_budget(written, max_tokens)
+        ran_out = response.stop_reason == "max_tokens"
+        return text, ("length" if (cut or ran_out) else "stop"), None
 
     raise ValueError(f"Unknown engine: {engine_key}")

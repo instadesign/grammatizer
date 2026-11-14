@@ -71,20 +71,67 @@ def _groq_retry_seconds(exc: Exception):
     return minutes * 60 + seconds
 
 
+# The two paid engines (openai, claude) fail in one way the free ones cannot: a key
+# that is perfectly valid, on an account with nothing to spend. People arrive there
+# honestly, assuming a ChatGPT or Claude subscription covers it. It gets its own code
+# so the frontend can send the reader back to the title page with the reason, as it
+# does for a bad key, instead of calling it a jam and offering to try again.
+_NO_CREDIT_MESSAGES = {
+    "openai": (
+        "OpenAI accepted this key, but its account has no API credit. A ChatGPT "
+        "subscription does not include any: add credit at platform.openai.com, or "
+        "choose another engine."
+    ),
+    "claude": (
+        "Anthropic accepted this key, but its account has no API credit. A Claude "
+        "subscription does not include any: add credit at platform.claude.com, or "
+        "choose another engine."
+    ),
+}
+
+
+def _no_credit(engine_key: str) -> GenerationError:
+    return GenerationError("no_credit", _NO_CREDIT_MESSAGES[engine_key], 402)
+
+
+def _retry_after_header(exc: Exception):
+    """Seconds from a rate-limit response's Retry-After header, when it has one.
+    (A header, not the error text: see the note at the top of this module.)"""
+    try:
+        return float(exc.response.headers.get("retry-after"))
+    except (AttributeError, TypeError, ValueError):
+        return None
+
+
+def _rate_limited(exc: Exception) -> GenerationError:
+    return GenerationError(
+        "rate_limited",
+        "The engine is rate-limiting this key right now.",
+        429,
+        retry_after_seconds=_retry_after_header(exc),
+    )
+
+
+_OVERLOADED_TYPES = (
+    "APIConnectionError", "APITimeoutError", "InternalServerError",
+    "OverloadedError", "ServiceUnavailableError", "DeadlineExceededError",
+)
+
+
 def translate_exception(engine_key: str, exc: Exception) -> GenerationError:
     type_name = type(exc).__name__
 
-    if engine_key == "gemini":
-        if type_name == "ContentFilteredError":
-            # See engines.ContentFilteredError -- deliberately retryable (the same
-            # RETRYABLE_CODES path rate limits use), since the same prompt can pass
-            # on a second attempt rather than being a hard, permanent block.
-            return GenerationError(
-                "content_filtered",
-                "The Safety Governor intervened for this line — the machine will try a different phrasing.",
-                422,
-            )
+    if type_name == "ContentFilteredError":
+        # See engines.ContentFilteredError -- deliberately retryable (the same
+        # RETRYABLE_CODES path rate limits use), since the same prompt can pass
+        # on a second attempt rather than being a hard, permanent block.
+        return GenerationError(
+            "content_filtered",
+            "The Safety Governor intervened for this line — the machine will try a different phrasing.",
+            422,
+        )
 
+    if engine_key == "gemini":
         status = getattr(exc, "code", None)
         reason = _gemini_reason(exc)
         message = str(getattr(exc, "message", "") or "")
@@ -128,6 +175,41 @@ def translate_exception(engine_key: str, exc: Exception) -> GenerationError:
                 message = "The engine is rate-limiting this key right now."
             return GenerationError("rate_limited", message, 429, retry_after_seconds=retry_seconds)
         if type_name in ("APIConnectionError", "InternalServerError"):
+            return GenerationError("engine_overloaded", "The engine is overloaded right now.", 503)
+        return GenerationError("engine_error", "The engine failed to respond.", 502)
+
+    if engine_key == "openai":
+        if type_name == "AuthenticationError":
+            return GenerationError("invalid_api_key", "The engine rejected this API key.", 401)
+        if type_name == "RateLimitError":
+            # OpenAI reports an empty account as a 429 too, told apart only by the
+            # error's code. Waiting does not cure it, so it must not be retried as one.
+            if getattr(exc, "code", None) == "insufficient_quota":
+                return _no_credit(engine_key)
+            return _rate_limited(exc)
+        if type_name in ("PermissionDeniedError", "NotFoundError"):
+            return GenerationError("invalid_api_key", "This key doesn't have access to that model.", 403)
+        if type_name in _OVERLOADED_TYPES:
+            return GenerationError("engine_overloaded", "The engine is overloaded right now.", 503)
+        return GenerationError("engine_error", "The engine failed to respond.", 502)
+
+    if engine_key == "claude":
+        if type_name == "AuthenticationError":
+            return GenerationError("invalid_api_key", "The engine rejected this API key.", 401)
+        # An empty account is a 402 "billing_error" by Anthropic's error table, though
+        # it has also been served as a plain 400 whose message names the credit
+        # balance. Only tested for here, never passed on.
+        if (
+            getattr(exc, "status_code", None) == 402
+            or getattr(exc, "type", None) == "billing_error"
+            or (type_name == "BadRequestError" and "credit balance" in str(exc).lower())
+        ):
+            return _no_credit(engine_key)
+        if type_name == "RateLimitError":
+            return _rate_limited(exc)
+        if type_name in ("PermissionDeniedError", "NotFoundError"):
+            return GenerationError("invalid_api_key", "This key doesn't have access to that model.", 403)
+        if type_name in _OVERLOADED_TYPES:
             return GenerationError("engine_overloaded", "The engine is overloaded right now.", 503)
         return GenerationError("engine_error", "The engine failed to respond.", 502)
 
