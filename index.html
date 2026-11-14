@@ -4,117 +4,184 @@
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <title>The Great Automatic Grammatizator</title>
-<meta name="description" content="Pull the levers. Watch the machine write, line by line, in real time.">
+<meta name="description" content="Pull the lever. Watch the machine write, line by line, in real time.">
 <link rel="stylesheet" href="css/tokens.css">
+<link rel="stylesheet" href="css/layout.css">
 <link rel="stylesheet" href="css/base.css">
+<link rel="stylesheet" href="css/connect.css">
 <link rel="stylesheet" href="css/ignition.css">
+<link rel="stylesheet" href="css/stage.css">
 <link rel="stylesheet" href="css/console.css">
 <link rel="stylesheet" href="css/animations.css">
 </head>
 <body>
 
 <!-- ============================================================ -->
-<!-- SCREEN 1 — Engine connect                                     -->
+<!-- SCREEN 1: Engine connect, drawn as a title page               -->
 <!-- ============================================================ -->
 <main id="screen-connect" class="screen screen-connect" data-screen="connect">
-  <div class="connect-card">
-    <p class="eyebrow">Machine Internals</p>
-    <h1 class="connect-title">The Great Automatic<br>Grammatizator</h1>
-    <p class="connect-subtitle">Choose the engine that will drive the machine, and give it a key.</p>
-    <p class="connect-inspo">Named for and inspired by Roald Dahl's 1953 short story of the same name, about a machine built to churn out fiction on demand. This app takes that premise semi-literally: an LLM standing in for Dahl's fifty thousand cogs and valves. <a href="https://en.wikipedia.org/wiki/The_Great_Automatic_Grammatizator" target="_blank" rel="noopener noreferrer">Read about the story</a> or <a href="https://www.penguin.co.uk/books/192016/the-great-automatic-grammatizator-a-roald-dahl-short-story-by-dahl-roald/9781405911153" target="_blank" rel="noopener noreferrer">get it from the publisher</a>.</p>
+  <div class="frontispiece">
+    <img class="frontispiece-cog frontispiece-cog--a" src="assets/svg/parts/cog-a.svg" alt="">
+    <img class="frontispiece-cog frontispiece-cog--b" src="assets/svg/parts/cog-b.svg" alt="">
+
+    <h1 class="connect-title"><span class="connect-title-small">The Great Automatic</span> Grammatizator</h1>
+    <p class="connect-subtitle">A machine for the manufacture of stories. Choose the engine that will drive it, and give it a key.</p>
+    <img class="flourish" src="assets/svg/parts/flourish.svg" alt="">
 
     <fieldset class="engine-choice" id="engine-choice">
       <legend class="visually-hidden">AI Engine</legend>
 
       <label class="engine-card" data-engine-card="gemini">
         <input type="radio" name="engine" value="gemini" checked>
+        <img class="engine-card-art" src="assets/svg/parts/engine-gemini.svg" alt="">
         <span class="engine-card-name">Google Gemini</span>
-        <span class="engine-card-tag">Default</span>
-        <span class="engine-card-desc">Sign in with any Google account — no card, a genuinely free tier.
-          <a class="engine-card-link" href="https://aistudio.google.com/apikey" target="_blank" rel="noopener noreferrer">Get a free key at aistudio.google.com &rarr;</a>
+        <span class="engine-card-tag">the standard engine</span>
+        <span class="engine-card-desc">Sign in with any Google account. No card, and a genuinely free tier.
+          <a class="engine-card-link" href="https://aistudio.google.com/apikey" target="_blank" rel="noopener noreferrer">Get a free key at aistudio.google.com</a>
         </span>
       </label>
 
       <label class="engine-card" data-engine-card="groq">
         <input type="radio" name="engine" value="groq">
+        <img class="engine-card-art" src="assets/svg/parts/engine-groq.svg" alt="">
         <span class="engine-card-name">Groq</span>
-        <span class="engine-card-tag">Turbo</span>
-        <span class="engine-card-desc">Free, no card. Runs on custom hardware, dramatically faster.
-          <a class="engine-card-link" href="https://console.groq.com/keys" target="_blank" rel="noopener noreferrer">Get a free key at console.groq.com &rarr;</a>
+        <span class="engine-card-tag">the fast engine</span>
+        <span class="engine-card-desc">Free, no card. Runs on custom hardware and writes dramatically faster.
+          <a class="engine-card-link" href="https://console.groq.com/keys" target="_blank" rel="noopener noreferrer">Get a free key at console.groq.com</a>
         </span>
       </label>
 
+      <label class="engine-card" data-engine-card="openai">
+        <input type="radio" name="engine" value="openai">
+        <img class="engine-card-art" src="assets/svg/parts/engine-openai.svg" alt="">
+        <span class="engine-card-name">ChatGPT</span>
+        <span class="engine-card-tag">the talkative engine</span>
+        <span class="engine-card-desc">By OpenAI. Paid: needs API credit, which a ChatGPT subscription does not include.
+          <a class="engine-card-link" href="https://platform.openai.com/api-keys" target="_blank" rel="noopener noreferrer">Get a key at platform.openai.com</a>
+        </span>
+      </label>
+
+      <label class="engine-card" data-engine-card="claude">
+        <input type="radio" name="engine" value="claude">
+        <img class="engine-card-art" src="assets/svg/parts/engine-claude.svg" alt="">
+        <span class="engine-card-name">Claude</span>
+        <span class="engine-card-tag">the thoughtful engine</span>
+        <span class="engine-card-desc">By Anthropic. Paid: needs API credit, which a Claude subscription does not include.
+          <a class="engine-card-link" href="https://platform.claude.com/settings/keys" target="_blank" rel="noopener noreferrer">Get a key at platform.claude.com</a>
+        </span>
+      </label>
     </fieldset>
 
-    <label class="field" for="api-key-input" id="api-key-field">
-      <span class="field-label">API Key</span>
-      <input type="password" id="api-key-input" autocomplete="off" spellcheck="false" placeholder="Paste your key here">
-      <span class="field-hint" id="api-key-hint">New here? Use the "Get a free key" link on the card above, sign in, create a key, then paste it here. Kept only for this browser session, sent only to your chosen engine. Never stored on our server.</span>
-    </label>
-
+    <div class="key-row">
+      <label class="key-field" for="api-key-input" id="api-key-field">
+        <span class="key-field-label">The key</span>
+        <span class="key-plate">
+          <img class="key-plate-art" src="assets/svg/parts/key.svg" alt="">
+          <input type="password" id="api-key-input" autocomplete="off" spellcheck="false" placeholder="Paste your API key here">
+        </span>
+      </label>
+      <button type="button" class="plaque plaque--large" id="btn-connect">Connect the machine</button>
+    </div>
     <p class="connect-error" id="connect-error" role="alert" hidden></p>
+    <p class="key-hint" id="api-key-hint">New here? The two engines on the top row are free: follow the link on either, sign in, create a key, then paste it here. The key is kept only for this browser session and sent only to the engine you chose. It is never stored on our server.</p>
 
-    <button type="button" class="btn btn-brass btn-block" id="btn-connect">Connect the Machine</button>
+    <p class="connect-inspo">Named for and inspired by Roald Dahl's 1953 short story of the same name, about a machine built to churn out fiction on demand. This app takes that premise semi-literally: a language model standing in for Dahl's fifty thousand cogs and valves. <a href="https://en.wikipedia.org/wiki/The_Great_Automatic_Grammatizator" target="_blank" rel="noopener noreferrer">Read about the story</a> or <a href="https://www.penguin.co.uk/books/192016/the-great-automatic-grammatizator-a-roald-dahl-short-story-by-dahl-roald/9781405911153" target="_blank" rel="noopener noreferrer">get it from the publisher</a>.</p>
   </div>
 </main>
 
 <!-- ============================================================ -->
-<!-- SCREEN 2 — Ignition onboarding                                -->
+<!-- SCREEN 2: Ignition. The machine warms up and asks who you are -->
 <!-- ============================================================ -->
 <main id="screen-ignition" class="screen screen-ignition" data-screen="ignition" hidden>
-  <div class="ignition-crt">
-    <div class="ignition-scanlines" aria-hidden="true"></div>
-    <div class="ignition-log" id="ignition-log" aria-live="polite"></div>
+  <div class="ignition-bench">
+    <div class="ignition-valves" id="ignition-valves" aria-hidden="true">
+      <span class="ignition-valve"><img src="assets/svg/parts/valve.svg" alt=""><img class="ignition-valve-glow" src="assets/svg/parts/valve-glow.svg" alt=""></span>
+      <span class="ignition-valve"><img src="assets/svg/parts/valve.svg" alt=""><img class="ignition-valve-glow" src="assets/svg/parts/valve-glow.svg" alt=""></span>
+      <span class="ignition-valve"><img src="assets/svg/parts/valve.svg" alt=""><img class="ignition-valve-glow" src="assets/svg/parts/valve-glow.svg" alt=""></span>
+      <span class="ignition-valve"><img src="assets/svg/parts/valve.svg" alt=""><img class="ignition-valve-glow" src="assets/svg/parts/valve-glow.svg" alt=""></span>
+      <span class="ignition-valve"><img src="assets/svg/parts/valve.svg" alt=""><img class="ignition-valve-glow" src="assets/svg/parts/valve-glow.svg" alt=""></span>
+    </div>
+
+    <div class="ignition-tape">
+      <div class="ignition-log" id="ignition-log" aria-live="polite"></div>
+    </div>
 
     <form class="ignition-form" id="ignition-form" hidden>
+      <p class="ignition-form-title">Operator's card</p>
       <label class="ignition-field">
-        <span class="ignition-prompt">NAME OF OPERATOR&colon;</span>
+        <span class="ignition-prompt">Name of operator</span>
         <input type="text" id="operator-name-input" autocomplete="name" maxlength="80" required>
       </label>
       <label class="ignition-field">
-        <span class="ignition-prompt">PUBLISHING AGENCY&colon;</span>
+        <span class="ignition-prompt">Publishing agency</span>
         <input type="text" id="agency-name-input" autocomplete="organization" maxlength="80" required>
       </label>
-      <button type="submit" class="btn btn-ignition">Engage</button>
+      <button type="submit" class="plaque plaque--medium">Engage</button>
     </form>
   </div>
 </main>
 
 <!-- ============================================================ -->
-<!-- SCREEN 3 — Console                                            -->
+<!-- SCREEN 3: The console. One drawing, 1600 x 900, scaled to fit -->
+<!-- (see css/stage.css). Everything inside .safe is positioned in -->
+<!-- drawing coordinates from css/layout.css.                      -->
 <!-- ============================================================ -->
 <main id="screen-console" class="screen screen-console" data-screen="console" hidden>
+ <div class="stage-frame" id="stage-frame">
+  <div class="stage" id="stage" data-machine-state="idle">
+    <img class="plate" src="assets/svg/plates/console.svg" alt="">
 
-  <header class="console-header">
-    <div class="console-header-inner">
-      <h1 class="console-title">The Great Automatic Grammatizator</h1>
-      <div class="console-header-actions">
-        <button type="button" class="lever-switch lever-switch--compact" id="btn-pull-lever" aria-label="Pull lever — begin composing">
-          <span class="lever-switch-plate">
-            <svg class="lever-switch-icon" id="lever-icon" viewBox="0 0 40 60" aria-hidden="true"><use href="assets/svg/lever.svg#lever"></use></svg>
-          </span>
-          <span class="lever-switch-label">Pull Lever</span>
-        </button>
-        <button type="button" class="btn btn-ghost btn-small" id="btn-forget-me">Forget Me</button>
+    <div class="safe">
+
+      <!-- ---- moving parts with no controls on them ---------------------------- -->
+      <div class="scenery" aria-hidden="true">
+        <img class="sprite turns flywheel" src="assets/svg/parts/flywheel.svg" alt="">
+        <img class="sprite turns cog-big" src="assets/svg/parts/cog-a.svg" alt="">
+        <img class="sprite turns turns--back cog-mid" src="assets/svg/parts/cog-b.svg" alt="">
+        <img class="sprite turns gear gear--1" src="assets/svg/parts/cog-c.svg" alt="">
+        <img class="sprite turns turns--back gear gear--2" src="assets/svg/parts/cog-c.svg" alt="">
+        <img class="sprite turns gear gear--3" src="assets/svg/parts/cog-c.svg" alt="">
+        <img class="sprite whistle" src="assets/svg/parts/whistle.svg" alt="">
+        <span class="puffs" id="puffs"></span>
+        <img class="sprite bell" id="bell" src="assets/svg/parts/bell.svg" alt="">
+        <img class="sprite valve-glow" style="--i:0" src="assets/svg/parts/valve-glow.svg" alt="">
+        <img class="sprite valve-glow" style="--i:1" src="assets/svg/parts/valve-glow.svg" alt="">
+        <img class="sprite valve-glow" style="--i:2" src="assets/svg/parts/valve-glow.svg" alt="">
+        <img class="sprite valve-glow" style="--i:3" src="assets/svg/parts/valve-glow.svg" alt="">
+        <img class="sprite valve-glow" style="--i:4" src="assets/svg/parts/valve-glow.svg" alt="">
       </div>
-    </div>
-  </header>
 
-  <div class="console-main">
+      <!-- ---- along the top ------------------------------------------------------- -->
+      <h1 class="nameplate"><span class="nameplate-small">The Great Automatic</span><span class="nameplate-big">Grammatizator</span></h1>
 
-    <!-- Setup + auxiliary panels: an off-canvas drawer, not a grid column -- it
-         overlays the manuscript while open and slides fully away once locked, so the
-         manuscript actually reclaims the width rather than just being uncovered. -->
-    <div class="setup-drawer-clip">
-      <aside class="setup-drawer" id="setup-drawer">
-        <div class="setup-drawer-scroll" id="setup-bank">
+      <!-- First in the page (so first with the Tab key) though it is drawn bottom right. -->
+      <button type="button" class="lever" id="btn-pull-lever" aria-label="Pull lever: begin composing">
+        <img class="lever-base" src="assets/svg/parts/lever-base.svg" alt="">
+        <img class="lever-arm" id="lever-icon" src="assets/svg/parts/lever-arm.svg" alt="">
+        <span class="lever-label">Pull the lever</span>
+      </button>
 
-      <section class="panel panel-setup" aria-labelledby="panel-setup-heading">
-        <h2 class="panel-heading" id="panel-setup-heading">Pre-Selector Buttons</h2>
+      <div class="op-card">
+        <img src="assets/svg/parts/card.svg" alt="">
+        <p class="op-card-line"><span class="op-card-key">Operator</span> <span id="op-card-name"></span></p>
+        <p class="op-card-line"><span class="op-card-key">Agency</span> <span id="op-card-agency"></span></p>
+        <button type="button" class="tag-btn" id="btn-forget-me">Forget me</button>
+      </div>
 
-        <label class="field" for="field-category">
-          <span class="field-label">Category</span>
-          <select id="field-category" data-field="category">
+      <button type="button" class="horn" id="btn-sound" aria-pressed="true" aria-label="Sound">
+        <img src="assets/svg/parts/horn.svg" alt="">
+        <img class="horn-bung" src="assets/svg/parts/horn-bung.svg" alt="">
+      </button>
+
+      <!-- ---- left cabinet: the pre-selectors. Locked (shutter down) while writing -- -->
+      <aside class="preselectors" id="setup-drawer">
+       <div id="setup-bank">
+        <h2 class="plate-text preselectors-title" id="panel-setup-heading">Pre-selector buttons</h2>
+        <div class="drum-bank drum-bank--main">
+        <div class="drum-row">
+          <label class="drum-label" for="field-category">Category</label>
+          <div class="drum">
+            <select id="field-category" data-field="category">
             <option>Historical</option>
             <option>Satirical</option>
             <option>Philosophical</option>
@@ -123,12 +190,13 @@
             <option>Erotic</option>
             <option selected>Humorous</option>
             <option>Straight</option>
-          </select>
-        </label>
-
-        <label class="field" for="field-theme">
-          <span class="field-label">Theme &amp; Setting</span>
-          <select id="field-theme" data-field="theme_setting">
+            </select>
+          </div>
+        </div>
+        <div class="drum-row">
+          <label class="drum-label" for="field-theme">Theme &amp; setting</label>
+          <div class="drum">
+            <select id="field-theme" data-field="theme_setting">
             <option>Army Life</option>
             <option>Pioneer Days</option>
             <option>Civil War</option>
@@ -139,12 +207,13 @@
             <option>Childhood Memories</option>
             <option>Seafaring</option>
             <option>The Sea Bottom</option>
-          </select>
-        </label>
-
-        <label class="field" for="field-style">
-          <span class="field-label">Style &amp; Voice</span>
-          <select id="field-style" data-field="style_voice">
+            </select>
+          </div>
+        </div>
+        <div class="drum-row">
+          <label class="drum-label" for="field-style">Style &amp; voice</label>
+          <div class="drum">
+            <select id="field-style" data-field="style_voice">
             <option>Classical</option>
             <option selected>Whimsical</option>
             <option>Racy</option>
@@ -152,141 +221,165 @@
             <option>Stream-of-Consciousness</option>
             <option>Gothic &amp; Dense</option>
             <option>Lyrical</option>
-          </select>
-        </label>
-
-        <label class="field" for="field-ending">
-          <span class="field-label">Ending</span>
-          <select id="field-ending" data-field="ending">
+            </select>
+          </div>
+        </div>
+        <div class="drum-row">
+          <label class="drum-label" for="field-ending">Ending</label>
+          <div class="drum">
+            <select id="field-ending" data-field="ending">
             <option selected>Happy &amp; Resolved</option>
             <option>Tragic &amp; Heartbreaking</option>
             <option>A Mind-Bending Plot Twist</option>
             <option>An Unresolved Cliffhanger</option>
-          </select>
-        </label>
+            </select>
+          </div>
+        </div>
+        </div>
 
-        <label class="field field-slider" for="field-wordage">
-          <span class="field-label">Approximate Wordage <output id="wordage-output">1500</output></span>
-          <input type="range" id="field-wordage" data-field="target_words" min="500" max="10000" step="250" value="1500">
-        </label>
-
-        <label class="field" for="field-custom">
-          <span class="field-label">Mandatory Details <span class="field-optional">(optional)</span></span>
-          <input type="text" id="field-custom" data-field="custom_elements" maxlength="280" placeholder="e.g. a talking clockwork owl">
-        </label>
-      </section>
-
-      <aside class="panel panel-auxiliary" aria-labelledby="panel-auxiliary-heading">
-        <h2 class="panel-heading" id="panel-auxiliary-heading">Auxiliary Attachment</h2>
-
-        <label class="field" for="field-characters">
-          <span class="field-label">Cast</span>
-          <select id="field-characters" data-field="characters">
+        <h2 class="plate-text aux-title" id="panel-auxiliary-heading">Auxiliary attachment</h2>
+        <div class="drum-bank drum-bank--aux">
+        <div class="drum-row">
+          <label class="drum-label" for="field-characters">Cast</label>
+          <div class="drum">
+            <select id="field-characters" data-field="characters">
             <option selected>A Lone Protagonist</option>
             <option>A Pair (Allies or Rivals)</option>
             <option>An Ensemble Cast</option>
-          </select>
-        </label>
-
-        <label class="field" for="field-pov">
-          <span class="field-label">Point of View</span>
-          <select id="field-pov" data-field="pov">
+            </select>
+          </div>
+        </div>
+        <div class="drum-row">
+          <label class="drum-label" for="field-pov">Point of view</label>
+          <div class="drum">
+            <select id="field-pov" data-field="pov">
             <option selected>First Person</option>
             <option>Third Person Limited</option>
             <option>Third Person Omniscient</option>
             <option>Second Person (Novelty)</option>
-          </select>
-        </label>
-
-        <label class="field" for="field-tense">
-          <span class="field-label">Tense</span>
-          <select id="field-tense" data-field="tense">
+            </select>
+          </div>
+        </div>
+        <div class="drum-row">
+          <label class="drum-label" for="field-tense">Tense</label>
+          <div class="drum">
+            <select id="field-tense" data-field="tense">
             <option selected>Past Tense</option>
             <option>Present Tense</option>
-          </select>
-        </label>
-
-        <label class="field" for="field-era">
-          <span class="field-label">Era</span>
-          <select id="field-era" data-field="setting_era">
+            </select>
+          </div>
+        </div>
+        <div class="drum-row">
+          <label class="drum-label" for="field-era">Era</label>
+          <div class="drum">
+            <select id="field-era" data-field="setting_era">
             <option selected>Victorian</option>
             <option>Interwar</option>
             <option>Contemporary</option>
             <option>Far Future</option>
-          </select>
-        </label>
-
-        <label class="field" for="field-audience">
-          <span class="field-label">Audience</span>
-          <select id="field-audience" data-field="audience">
+            </select>
+          </div>
+        </div>
+        <div class="drum-row">
+          <label class="drum-label" for="field-audience">Audience</label>
+          <div class="drum">
+            <select id="field-audience" data-field="audience">
             <option>Children's</option>
             <option>Young Adult</option>
             <option selected>Adult</option>
-          </select>
-        </label>
-
-        <label class="field" for="field-structure">
-          <span class="field-label">Structure</span>
-          <select id="field-structure" data-field="structure">
+            </select>
+          </div>
+        </div>
+        <div class="drum-row">
+          <label class="drum-label" for="field-structure">Structure</label>
+          <div class="drum">
+            <select id="field-structure" data-field="structure">
             <option selected>Single Unbroken Scene</option>
             <option>Chaptered Sketch</option>
-          </select>
-        </label>
+            </select>
+          </div>
+        </div>
+        </div>
+
+        <div class="wordage">
+          <label class="wordage-label" for="field-wordage">Approximate wordage</label>
+          <input type="range" id="field-wordage" data-field="target_words" min="500" max="10000" step="250" value="1500">
+          <span class="wordage-ends" aria-hidden="true"><span>500</span><span>10,000</span></span>
+          <output class="wordage-output" id="wordage-output" for="field-wordage">1500</output>
+        </div>
+
+        <div class="slip">
+          <label class="slip-label" for="field-custom">Mandatory details <span class="field-optional">(optional)</span></label>
+          <input type="text" id="field-custom" data-field="custom_elements" maxlength="280" placeholder="e.g. a talking clockwork owl">
+        </div>
+       </div><!-- /#setup-bank -->
+
+        <div class="shutter-clip" aria-hidden="true">
+          <div class="shutter">
+            <img src="assets/svg/parts/shutter.svg" alt="">
+            <span class="shutter-note">Locked while the machine writes</span>
+          </div>
+        </div>
+
+        <button type="button" class="crank" id="btn-scramble" aria-label="Scramble the pre-selectors" title="Scramble the pre-selectors">
+          <img src="assets/svg/parts/crank.svg" alt="">
+        </button>
+        <p class="makers-plate">after <a href="https://en.wikipedia.org/wiki/The_Great_Automatic_Grammatizator" target="_blank" rel="noopener noreferrer">Roald Dahl</a>, 1953<br><span id="build-tag-console">Mark IV, v0.21</span></p>
       </aside>
 
-        </div><!-- /setup-drawer-scroll (#setup-bank) -->
-      </aside><!-- /setup-drawer -->
-    </div><!-- /setup-drawer-clip -->
+      <!-- ---- centre: status flag, word counter, the paper, its actions ---------------- -->
+      <div class="flag" aria-hidden="true"><span class="flag-lamp"></span><span id="flag-text">At rest</span></div>
+      <div class="odometer" aria-hidden="true"><span class="odometer-count" id="odo-count">0000</span><span class="odometer-of">of</span><span id="odo-target">1500</span><span class="odometer-of">words</span></div>
 
-    <!-- The manuscript slot: paper feeds out here, continuously, once composing --
-         a full-width sibling of the drawer, not one of its columns, so it actually
-         widens once the drawer retracts. -->
-    <section class="manuscript-slot" aria-labelledby="manuscript-heading">
-      <h2 class="visually-hidden" id="manuscript-heading">Manuscript</h2>
-      <div class="manuscript-paper" id="manuscript-paper">
-        <p class="manuscript-placeholder" id="manuscript-placeholder">Set the pre-selectors, then pull the lever.</p>
-        <div class="manuscript-letterhead" id="manuscript-letterhead" hidden>
-          <p class="manuscript-title" id="manuscript-title" hidden></p>
-          <p class="manuscript-agency" id="manuscript-agency"></p>
-          <p class="manuscript-byline" id="manuscript-byline"></p>
+      <section class="manuscript-slot" aria-labelledby="manuscript-heading">
+        <h2 class="visually-hidden" id="manuscript-heading">Manuscript</h2>
+        <div class="manuscript-paper" id="manuscript-paper">
+          <p class="manuscript-placeholder" id="manuscript-placeholder">Set the pre-selectors on the left, pull out any organ stops you fancy on the right, then pull the lever.</p>
+          <div class="manuscript-letterhead" id="manuscript-letterhead" hidden>
+            <p class="manuscript-title" id="manuscript-title" hidden></p>
+            <p class="manuscript-agency" id="manuscript-agency"></p>
+            <p class="manuscript-byline" id="manuscript-byline"></p>
+          </div>
+          <div class="manuscript-text" id="manuscript-text" aria-live="polite"><span id="manuscript-text-content"></span><span class="write-head" id="manuscript-write-head" hidden></span></div>
+          <p class="manuscript-status" id="manuscript-status" hidden></p>
+          <a href="#" class="manuscript-status-link" id="switch-engine-link" hidden>Switch engines</a>
         </div>
-        <div class="manuscript-text" id="manuscript-text" aria-live="polite"><span id="manuscript-text-content"></span><span class="write-head" id="manuscript-write-head" hidden></span></div>
-        <p class="manuscript-status" id="manuscript-status" hidden></p>
-        <a href="#" class="manuscript-status-link" id="switch-engine-link" hidden>Switch engines &rarr;</a>
-      </div>
 
-      <div class="manuscript-actions">
-        <button type="button" class="btn btn-ghost" id="btn-pause" hidden>Pause</button>
-        <button type="button" class="btn btn-ghost" id="btn-stop" hidden>Stop</button>
-        <button type="button" class="btn btn-brass" id="btn-bind-archive" hidden>Bind &amp; Archive (PDF)</button>
-        <button type="button" class="btn btn-brass" id="btn-try-again" hidden>Try Again</button>
-        <button type="button" class="btn btn-ghost" id="btn-new-manuscript" hidden>New Manuscript</button>
-      </div>
-      <p class="console-error" id="console-error" role="alert" hidden></p>
-    </section>
-
-    <!-- Continuous dials: always live, even mid-composition -->
-    <section class="panel panel-dials" aria-labelledby="panel-dials-heading">
-      <h2 class="panel-heading" id="panel-dials-heading">Continuous Adjusters</h2>
-
-      <div class="dial-lcd" id="dial-lcd" aria-hidden="true">
-        <div class="dial-lcd-idle" id="dial-lcd-idle">
-          <span class="dial-lcd-bar"></span>
-          <span class="dial-lcd-bar"></span>
-          <span class="dial-lcd-bar"></span>
-          <span class="dial-lcd-bar"></span>
-          <span class="dial-lcd-bar"></span>
-          <span class="dial-lcd-bar"></span>
+        <div class="manuscript-actions">
+          <button type="button" class="plaque plaque--small" id="btn-pause" hidden>Pause</button>
+          <button type="button" class="stop-btn" id="btn-stop" hidden>Stop</button>
+          <button type="button" class="plaque plaque--wide" id="btn-bind-archive" hidden>Bind &amp; archive (PDF)</button>
+          <button type="button" class="plaque plaque--medium" id="btn-try-again" hidden>Try again</button>
+          <button type="button" class="plaque plaque--wide" id="btn-new-manuscript" hidden>New manuscript</button>
         </div>
-        <div class="dial-progress" id="dial-progress" hidden>
-          <span class="dial-progress-label">Recalibrating…</span>
-          <div class="dial-progress-track"><div class="dial-progress-fill" id="dial-progress-fill"></div></div>
+        <p class="console-error" id="console-error" role="alert" hidden></p>
+      </section>
+
+      <!-- ---- continuous adjusters: live while the machine writes ---------------------- -->
+      <section class="panel-dials" aria-labelledby="panel-dials-heading">
+        <h2 class="visually-hidden" id="panel-dials-heading">Continuous adjusters</h2>
+
+        <div class="dial-group dial-group-pedals">
+          <p class="visually-hidden">Foot pedals</p>
+          <label class="pedal pedal--passion" for="dial-passion">
+            <span class="gauge" aria-hidden="true"><img src="assets/svg/parts/gauge.svg" alt=""><span class="dial-name">Passion</span><img class="gauge-needle" src="assets/svg/parts/gauge-needle.svg" alt=""><img src="assets/svg/parts/gauge-glass.svg" alt=""></span>
+            <span class="pedal-shoe" aria-hidden="true"><img src="assets/svg/parts/pedal.svg" alt=""></span>
+            <input type="range" id="dial-passion" data-dial="passion" min="0" max="10" value="2" aria-label="Passion">
+          </label>
+          <label class="pedal pedal--intensity" for="dial-intensity">
+            <span class="gauge" aria-hidden="true"><img src="assets/svg/parts/gauge.svg" alt=""><span class="dial-name">Intensity</span><img class="gauge-needle" src="assets/svg/parts/gauge-needle.svg" alt=""><img src="assets/svg/parts/gauge-glass.svg" alt=""></span>
+            <span class="pedal-shoe" aria-hidden="true"><img src="assets/svg/parts/pedal.svg" alt=""></span>
+            <input type="range" id="dial-intensity" data-dial="intensity" min="0" max="10" value="3" aria-label="Intensity">
+          </label>
+          <div class="governor">
+            <img src="assets/svg/parts/governor-base.svg" alt="">
+            <img class="governor-arms" src="assets/svg/parts/governor-arms.svg" alt="">
+            <p class="safety-governor" id="safety-governor">Safety governor, engaged</p>
+          </div>
         </div>
-      </div>
 
-      <div class="dial-group dial-group-stops">
-        <p class="dial-group-label">Organ Stops</p>
-
+        <div class="dial-group dial-group-stops">
+          <p class="plate-text stops-title">Organ stops</p>
         <div class="stop-quality">
           <p class="stop-quality-label">Tension</p>
           <div class="stop-row">
@@ -296,7 +389,6 @@
             <label class="stop-toggle"><input type="checkbox" data-stop="escalating_stakes"><span class="stop-toggle-knob" aria-hidden="true"></span><span class="stop-toggle-label">Escalating Stakes</span></label>
           </div>
         </div>
-
         <div class="stop-quality">
           <p class="stop-quality-label">Surprise</p>
           <div class="stop-row">
@@ -306,7 +398,6 @@
             <label class="stop-toggle"><input type="checkbox" data-stop="broken_expectation"><span class="stop-toggle-knob" aria-hidden="true"></span><span class="stop-toggle-label">Broken Expectation</span></label>
           </div>
         </div>
-
         <div class="stop-quality">
           <p class="stop-quality-label">Humour</p>
           <div class="stop-row">
@@ -316,7 +407,6 @@
             <label class="stop-toggle"><input type="checkbox" data-stop="absurd_juxtaposition"><span class="stop-toggle-knob" aria-hidden="true"></span><span class="stop-toggle-label">Absurd Juxtaposition</span></label>
           </div>
         </div>
-
         <div class="stop-quality">
           <p class="stop-quality-label">Pathos</p>
           <div class="stop-row">
@@ -326,7 +416,6 @@
             <label class="stop-toggle"><input type="checkbox" data-stop="small_kindness"><span class="stop-toggle-knob" aria-hidden="true"></span><span class="stop-toggle-label">Small Kindness</span></label>
           </div>
         </div>
-
         <div class="stop-quality">
           <p class="stop-quality-label">Mystery</p>
           <div class="stop-row">
@@ -336,48 +425,52 @@
             <label class="stop-toggle"><input type="checkbox" data-stop="ominous_omen"><span class="stop-toggle-knob" aria-hidden="true"></span><span class="stop-toggle-label">Ominous Omen</span></label>
           </div>
         </div>
-      </div>
-
-      <div class="dial-group dial-group-pedals">
-        <p class="dial-group-label">Foot Pedals</p>
-        <div class="dial-row">
-          <label class="pedal" for="dial-passion">
-            <span class="dial-name">Passion</span>
-            <input type="range" id="dial-passion" data-dial="passion" min="0" max="10" value="2">
-          </label>
-          <label class="pedal" for="dial-intensity">
-            <span class="dial-name">Intensity</span>
-            <input type="range" id="dial-intensity" data-dial="intensity" min="0" max="10" value="3">
-          </label>
         </div>
-        <p class="safety-governor" id="safety-governor">
-          <span class="safety-governor-light" aria-hidden="true"></span>
-          Safety Governor — Engaged
-        </p>
-      </div>
-    </section>
 
-  </div><!-- /console-main -->
+        <div class="dial-lcd sight" id="dial-lcd" aria-hidden="true">
+          <span class="sight-tube"><span class="sight-fluid" id="dial-progress-fill"></span></span>
+          <img class="sight-glass" src="assets/svg/parts/sight-glass.svg" alt="">
+          <span class="sight-label" id="dial-progress">Recalibrating</span>
+          <span class="pistons" id="dial-lcd-idle">
+            <img class="piston" src="assets/svg/parts/piston.svg" alt=""><img class="piston" src="assets/svg/parts/piston.svg" alt=""><img class="piston" src="assets/svg/parts/piston.svg" alt="">
+            <img class="piston" src="assets/svg/parts/piston.svg" alt=""><img class="piston" src="assets/svg/parts/piston.svg" alt=""><img class="piston" src="assets/svg/parts/piston.svg" alt="">
+          </span>
+        </div>
+      </section>
 
+
+    </div><!-- /.safe -->
+  </div><!-- /.stage -->
+ </div><!-- /.stage-frame -->
+
+  <div class="too-small" id="too-small" hidden>
+    <img src="assets/svg/parts/lever-base.svg" alt="">
+    <p class="too-small-title">This machine will not fit through so small a door.</p>
+    <p>It is drawn for a desktop or laptop screen. Open it there, or widen this window.</p>
+  </div>
 </main>
 
-<!-- Signature ignition→console transition overlay -->
+<!-- Signature ignition-to-console transition overlay -->
 <div id="machine-transition" class="machine-transition" aria-hidden="true"></div>
 
 <div class="toast" id="toast" role="status" aria-live="polite" hidden></div>
 
 <footer class="app-footer">
   <p class="app-footer-inspo">
-    Inspired by Roald Dahl's short story <em>The Great Automatic Grammatizator</em> (1953) —
-    <a href="https://en.wikipedia.org/wiki/The_Great_Automatic_Grammatizator" target="_blank" rel="noopener noreferrer">about the story</a> ·
-    <a href="https://www.penguin.co.uk/books/192016/the-great-automatic-grammatizator-a-roald-dahl-short-story-by-dahl-roald/9781405911153" target="_blank" rel="noopener noreferrer">read it</a>
+    Inspired by Roald Dahl's short story <em>The Great Automatic Grammatizator</em> (1953).
+    <a href="https://en.wikipedia.org/wiki/The_Great_Automatic_Grammatizator" target="_blank" rel="noopener noreferrer">About the story</a>,
+    <a href="https://www.penguin.co.uk/books/192016/the-great-automatic-grammatizator-a-roald-dahl-short-story-by-dahl-roald/9781405911153" target="_blank" rel="noopener noreferrer">read it</a>.
   </p>
-  <p class="build-tag" id="build-tag">Beta v0.19</p>
+  <p class="build-tag" id="build-tag">Beta v0.21</p>
 </footer>
+<div class="grain grain--page" aria-hidden="true"></div>
 
 <script src="js/state.js"></script>
 <script src="js/api.js"></script>
 <script src="js/composer.js"></script>
+<script src="js/sound.js"></script>
+<script src="js/stage.js"></script>
+<script src="js/machine.js"></script>
 <script src="js/screens/engine-connect.js"></script>
 <script src="js/screens/ignition-onboarding.js"></script>
 <script src="js/screens/console.js"></script>

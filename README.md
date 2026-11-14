@@ -16,15 +16,19 @@ research that shaped this.
 - **`backend/`** — FastAPI. One real endpoint, `POST /api/generate/beat`, called
   repeatedly by the frontend to compose the story a short beat (~120 characters) at a
   time — plus `POST /api/export/pdf` and a health check. Stateless: the frontend holds
-  "the story so far" and resends it each call. BYOK (bring your own API key) for Gemini
-  or Groq, with an optional server-side env var fallback.
+  "the story so far" and resends it each call. BYOK (bring your own API key) for any
+  of four engines (Gemini, Groq, ChatGPT, Claude), with an optional server-side env var
+  fallback.
 - **`index.html`, `css/`, `js/`, `assets/`** (repo root) — plain HTML/CSS/JS, no build
   step, no framework, deliberately sitting at the root rather than under a `frontend/`
   subfolder so a plain static-file upload (FTP, hPanel File Manager, etc.) can drop
   these straight into a hosting subfolder with no restructuring. Three screens: connect
-  an engine → an ignition boot sequence (new operators only) → the illustrated console,
-  styled as a creaky, whimsical steampunk machine (brass, glass valves, gauges — Dahl's
-  own description of the Grammatizator, not just an aesthetic choice).
+  an engine (a title page) → a boot sequence (new operators only) → the console, which
+  is one pen-and-watercolour drawing of the machine that you operate directly: drums
+  for the pre-selectors, organ stops that pull out, foot pedals with gauges, a lever.
+  See "The drawing" below.
+- **`tools/draw/`** — the Python that draws every SVG in `assets/svg/`. Not part of
+  the site and not needed to run or deploy it; the SVGs it writes are committed.
 - **`deploy/`** — reference Nginx config + systemd unit for the intended production
   target (DigitalOcean VPS, Nginx reverse-proxying to uvicorn). Not applied anywhere —
   adapt the paths/domain when you're ready to deploy.
@@ -60,16 +64,55 @@ somewhere that can't also proxy `/api/*` on the same origin (e.g. static hosting
 the backend elsewhere) needs `ALLOWED_ORIGINS` set on the backend and
 `window.GRAMMATIZER_API_BASE` set before `js/api.js` loads.
 
+## The drawing
+
+The console is a fixed 1600 × 900 scene scaled as a whole to fit the window (see the
+comment at the top of `css/stage.css`), not a layout that reflows. That is a deliberate
+trade: the illustration comes first and the app is **desktop only**. Small laptop
+windows scroll around the drawing rather than shrinking it past legibility; phones get
+a notice.
+
+- `assets/svg/plates/console.svg` is everything that never moves. Anything that moves,
+  lights up or repeats is its own file in `assets/svg/parts/`, laid over the plate by
+  `css/stage.css` and `css/console.css`.
+- Every control is still a native form element underneath the artwork, which is what
+  keeps keyboard and screen-reader use working.
+- `js/machine.js` turns what the app is doing into motion and sound; `js/sound.js`
+  synthesises the sounds (no audio files). Sound starts at the first pull of the lever
+  and the ear-trumpet on the machine mutes it.
+- Positions live in one place, `tools/draw/layout.py`, which writes `css/layout.css`.
+  To move something, change it there and run `python3 -m tools.draw.build` from the
+  repo root (standard library only). Don't edit `css/layout.css` or the SVGs by hand.
+- `tools/style-sheet.html` shows the main parts on one page, working.
+- Add `?mock=1` to the address to watch the machine write a canned story with no key,
+  no backend and no quota; `?mock=jam` makes it jam once part-way through.
+
 ## Bring your own key
 
-Paste a Gemini or Groq API key into the sidebar on first connect — it's kept only in
+Choose an engine on the title page and paste a key for it — it's kept only in
 `sessionStorage` for that browser session (never `localStorage`, never sent anywhere but
 your chosen engine's API) and is never stored server-side. Alternatively, set
-`GEMINI_API_KEY` / `GROQ_API_KEY` in `backend/.env` (local) or the systemd
-`EnvironmentFile` (production) as a fallback for when no key is supplied client-side.
+`GEMINI_API_KEY` / `GROQ_API_KEY` / `OPENAI_API_KEY` / `ANTHROPIC_API_KEY` in
+`backend/.env` (local) or the host's environment (production) as a fallback for when no
+key is supplied client-side.
+
+Two engines are free:
 
 - [Gemini API key](https://aistudio.google.com/app/apikey) — any Google account, no card.
 - [Groq API key](https://console.groq.com/keys) — free sign-up, no card, much faster generation.
+
+Two are paid by use, and need an API account with credit on it. A ChatGPT or Claude
+subscription is billed separately and does **not** include any; a key from an account
+with no credit is sent back to the title page with a message saying so.
+
+- [OpenAI API key](https://platform.openai.com/api-keys) — the "ChatGPT" engine.
+- [Anthropic API key](https://platform.claude.com/settings/keys) — the "Claude" engine.
+
+Which model each engine runs is one line per engine in `backend/app/engines.py`
+(`ENGINES`), with the prices noted beside it; `ENGINE_MODEL_NAMES` in
+`js/screens/console.js` repeats the names for the PDF's colophon. Adding an engine
+touches those two, `Engine` in `backend/app/schemas.py`, `translate_exception` in
+`backend/app/errors.py`, a card in `index.html` and a drawing in `tools/draw/parts.py`.
 
 ## Content
 
@@ -82,10 +125,33 @@ not blandness). See `backend/app/prompts.py`.
 
 The frontend (`index.html`, `css/`, `js/`, `assets/`) is just static files — it can go
 anywhere, including a subfolder of an existing site via plain FTP/File Manager upload.
+`tools/` is not part of it and does not need uploading.
 The backend needs somewhere that can run a persistent Python process (a VPS, not
 typical shared hosting) — until it's deployed and reachable at `/api/*`, the console
 will pull the lever and get a generic "The machine refused that," since nothing is
 answering the request yet, not a real per-engine error.
+
+### The live site (josieandhenry.co.uk/grammatizator/)
+
+The live copy is embedded in a WordPress page, not served as a folder:
+
+- The page holds one shortcode, `[php_snippet id="181"]`. That snippet (ASE Pro's Code
+  Snippets Manager; file `wp-content/code-snippets/181.php`, also stored in post 181)
+  prints the app's markup. `python3 -m tools.embed_wordpress <release>` writes it from
+  `index.html`; its docstring explains what it adds for the live site.
+- `css/`, `js/` and `assets/` go in `wp-content/uploads/grammatizer/<release>/`, a new
+  folder per release (e.g. `v020b`). Uploaded files are cached for a week, so never
+  overwrite a release in place; a new folder is also what makes rollback instant.
+- To release: upload the three folders to a new release folder, generate the snippet
+  for that folder, `php -l` it, keep a copy of the current `181.php`, then replace
+  `181.php` and update post 181's content to match. The plugin revalidates the file on
+  the next page load. To roll back, put the previous `181.php` back.
+- The backend is a separate deploy (Render, from `render.yaml`). When a release needs
+  a backend change (a new engine, a new field), the backend goes first: the old page
+  works against a newer backend, but a new page asking an old backend for an engine it
+  has never heard of gets a validation error on every pull of the lever.
+- The backend is the Render service at `api.josieandhenry.co.uk` (`render.yaml`). On the
+  free plan it sleeps, so the first request after a quiet spell can take most of a minute.
 
 Full VPS deploy (frontend + backend together, single origin, no CORS needed):
 
@@ -95,7 +161,7 @@ Full VPS deploy (frontend + backend together, single origin, no CORS needed):
    `/etc/grammatizer/grammatizer.env`.
 4. Adapt and install `deploy/nginx/grammatizer.conf`, then run `certbot` for TLS. Note
    this config's `root` now points at the full repo checkout (no more `frontend/`
-   subfolder boundary) — its deny rules for `backend/`, `deploy/`, `docs/`, etc. are
+   subfolder boundary) — its deny rules for `backend/`, `deploy/`, `docs/`, `tools/`, etc. are
    load-bearing, not optional. Prefer deploying only the public files to a dedicated
    directory instead, if you'd rather not rely on those rules.
 

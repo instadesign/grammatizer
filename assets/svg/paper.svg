@@ -1,0 +1,20 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="768" height="768" viewBox="0 0 768 768">
+  <!-- Tiling paper grain, laid over the whole drawing with mix-blend-mode: multiply
+       (see css/stage.css). Three layers of noise: tooth, fibres, and slow foxing.
+       stitchTiles keeps every edge seamless. -->
+  <filter id="tooth" x="0" y="0" width="100%" height="100%" color-interpolation-filters="sRGB">
+    <feTurbulence type="fractalNoise" baseFrequency="0.82" numOctaves="2" seed="7" stitchTiles="stitch"/>
+    <feColorMatrix type="matrix" values="0 0 0 0 0.36  0 0 0 0 0.27  0 0 0 0 0.16  1.15 0 0 0 -0.55"/>
+  </filter>
+  <filter id="fibre" x="0" y="0" width="100%" height="100%" color-interpolation-filters="sRGB">
+    <feTurbulence type="fractalNoise" baseFrequency="0.11 0.34" numOctaves="2" seed="19" stitchTiles="stitch"/>
+    <feColorMatrix type="matrix" values="0 0 0 0 0.42  0 0 0 0 0.31  0 0 0 0 0.18  0 0.6 0 0 -0.33"/>
+  </filter>
+  <filter id="foxing" x="0" y="0" width="100%" height="100%" color-interpolation-filters="sRGB">
+    <feTurbulence type="fractalNoise" baseFrequency="0.0039" numOctaves="3" seed="31" stitchTiles="stitch"/>
+    <feColorMatrix type="matrix" values="0 0 0 0 0.55  0 0 0 0 0.36  0 0 0 0 0.16  0 0 0.5 0 -0.24"/>
+  </filter>
+  <rect width="768" height="768" filter="url(#foxing)"/>
+  <rect width="768" height="768" filter="url(#fibre)"/>
+  <rect width="768" height="768" filter="url(#tooth)"/>
+</svg>

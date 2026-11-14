@@ -108,5 +108,57 @@ Grammatizer.api = (function () {
     }, TITLE_TIMEOUT_MS);
   }
 
+  /* ---- ?mock=1: a stand-in engine --------------------------------------------------
+     For working on the drawing and its animation without a key, a backend or any
+     quota: add ?mock=1 to the address and the machine "writes" a short canned story at
+     a realistic pace. ?mock=jam fails once, part-way through, to show a jam and its
+     recovery. Nothing here is reachable without the query parameter. */
+  const MOCK = new URLSearchParams(window.location.search).get("mock");
+  const MOCK_BEATS = [
+    "The owl arrived on a Tuesday, in a hatbox, ticking. Mrs Pargeter had ordered a barometer. She signed for it anyway, because the delivery boy had already gone and because the hatbox, when she put her ear to it, was humming a hymn.",
+    "It was a clockwork owl, about the height of a milk bottle, with eyes like two brass sixpences and a key in its back the size of a teaspoon. \"Wind me,\" it said, \"and I shall tell you what your husband has done with the egg money.\"",
+    "She wound it. She was not a woman who left a question lying about the house. The owl whirred, shuffled along the mantelpiece, and looked at the clock with open contempt.",
+    "\"Seven turns gets you the truth,\" it said. \"Eight gets you an opinion. I should stop at seven.\" Mrs Pargeter, who had never stopped at seven of anything, gave it nine.",
+    "By tea time the owl had audited the pantry, condemned the curtains and found Mr Pargeter's racing slips inside the piano. It was polite about all of it, which was worse.",
+    "Mr Pargeter came home at six to find his wife and a small brass bird sitting side by side, waiting, with the slips laid out on the table like a hand of patience. Nobody spoke. The owl ticked.",
+    "He paid back the egg money by Michaelmas. The owl stayed on the mantelpiece and was wound once a week, seven turns exactly, by a man who counted them out loud.",
+  ];
+  // The composer quietly retries a failed beat twice before giving up (see
+  // composer.js), so a jam only shows if the stand-in fails three times running.
+  let mockFailuresLeft = 3;
+
+  function mockWait(ms) {
+    return new Promise((resolve) => setTimeout(resolve, ms));
+  }
+
+  if (MOCK) {
+    const words = (text) => (text.trim() ? text.trim().split(/\s+/).length : 0);
+    return {
+      ApiError,
+      async generateBeat(payload) {
+        await mockWait(900 + Math.random() * 700);
+        const done = MOCK_BEATS.filter((beat) => payload.story_so_far.includes(beat.slice(0, 40))).length;
+        if (MOCK === "jam" && done === 2 && mockFailuresLeft > 0) {
+          mockFailuresLeft -= 1;
+          throw new ApiError("engine_overloaded", "The engine is overloaded just now — give it a moment, then try again.", 503);
+        }
+        const beat = MOCK_BEATS[Math.min(done, MOCK_BEATS.length - 1)];
+        return {
+          beat,
+          word_count: words(payload.story_so_far) + words(beat),
+          concluded: done >= MOCK_BEATS.length - 1,
+        };
+      },
+      async generateTitle() {
+        await mockWait(700);
+        return { title: "The Owl Who Kept Accounts" };
+      },
+      async exportPdf() {
+        await mockWait(400);
+        throw new ApiError("pdf_render_failed", "The binding press is not connected in mock mode.", 0);
+      },
+    };
+  }
+
   return { generateBeat, exportPdf, generateTitle, ApiError };
 })();

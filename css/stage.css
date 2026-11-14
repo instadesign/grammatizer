@@ -1,0 +1,273 @@
+/* The stage: the console is ONE drawing on a fixed canvas, scaled as a whole to fit the
+   window, rather than a layout that reflows. Every part has a single position in
+   drawing coordinates (css/layout.css, written from tools/draw/layout.py).
+
+   - The plate is 2100 x 1200. Its middle 1600 x 900 (.safe) is always fully visible;
+     the rest is extra workshop that wider or taller windows get to see.
+   - js/stage.js sets --stage-scale = the largest scale at which .safe still fits.
+   - Below a floor (see stage.js) the stage stops shrinking and the screen scrolls
+     instead, so small laptop windows pan round the drawing rather than getting
+     unreadable lettering. Phones get a notice: this is a desktop machine, on purpose. */
+
+.screen-console {
+  position: fixed;
+  inset: 0;
+  overflow: auto;
+  background: var(--color-parchment);
+  color: var(--color-ink);
+  font-family: var(--font-engraved);
+}
+
+.stage-frame {
+  position: relative;
+  overflow: hidden;
+  width: max(100%, calc(var(--safe-w) * var(--stage-scale, 1)));
+  height: max(100%, calc(var(--safe-h) * var(--stage-scale, 1)));
+}
+
+/* No will-change here on purpose: promoting the whole stage to its own layer makes
+   the browser rasterise it once at scale 1 and stretch the bitmap, which blurs every
+   line and letter. Left alone, it re-rasterises crisply at whatever scale is set. */
+.stage {
+  position: absolute;
+  left: 50%;
+  top: 50%;
+  width: var(--plate-w);
+  height: var(--plate-h);
+  transform: translate(-50%, -50%) scale(var(--stage-scale, 1));
+}
+
+.plate {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  max-width: none;
+  pointer-events: none;
+  user-select: none;
+}
+
+.safe {
+  position: absolute;
+  left: var(--safe-x);
+  top: var(--safe-y);
+  width: var(--safe-w);
+  height: var(--safe-h);
+}
+
+.safe img {
+  max-width: none;
+  user-select: none;
+  -webkit-user-drag: none;
+}
+
+/* ---- moving parts with nothing to click ------------------------------------------- */
+
+.scenery {
+  position: absolute;
+  inset: 0;
+  z-index: var(--z-scenery);
+  pointer-events: none;
+}
+
+.sprite {
+  position: absolute;
+}
+
+.flywheel   { left: 1605px; top: 527px; width: 246px; }
+.cog-big    { left: calc(var(--cog-a-x) - 53px); top: calc(var(--cog-a-y) - 53px); width: 106px; }
+.cog-mid    { left: calc(var(--cog-b-x) - 44px); top: calc(var(--cog-b-y) - 44px); width: 88px; }
+.gear       { left: calc(var(--gear-x) - 30px); width: 60px; }
+.gear--1    { top: calc(var(--gear-y-1) - 30px); }
+.gear--2    { top: calc(var(--gear-y-2) - 30px); rotate: 22.5deg; }
+.gear--3    { top: calc(var(--gear-y-3) - 30px); }
+
+.whistle {
+  left: var(--whistle-x);
+  top: var(--whistle-y);
+  width: calc(120px * var(--whistle-scale));
+}
+.puffs {
+  position: absolute;
+  left: calc(var(--whistle-x) + 42px);
+  top: calc(var(--whistle-y) + 6px);
+  width: 0;
+  height: 0;
+}
+.puffs img {
+  position: absolute;
+  left: -34px;
+  top: -52px;
+  width: 68px;
+}
+
+.bell {
+  left: 1036px;
+  top: 28px;
+  width: 56px;
+  transform-origin: 50% 0;
+}
+
+.valve-glow {
+  left: calc(var(--valve-x) - 34px);
+  top: calc(var(--valve-y) + var(--i) * var(--valve-step) - 46px);
+  width: 68px;
+  opacity: 0;
+  transition: opacity 600ms var(--ease-standard);
+}
+
+/* ---- lettering on the machine -------------------------------------------------------- */
+
+/* Engraved on a small enamel plate: the cabinet titles. */
+.plate-text {
+  position: absolute;
+  margin: 0;
+  font-family: var(--font-engraved-sc);
+  font-weight: 400;
+  font-size: 13.5px;
+  line-height: 20px;
+  letter-spacing: 0.05em;
+  text-align: center;
+  white-space: nowrap;
+}
+
+.nameplate {
+  position: absolute;
+  left: var(--nameplate-x);
+  top: var(--nameplate-y);
+  width: var(--nameplate-w);
+  height: var(--nameplate-h);
+  margin: 0;
+  text-align: center;
+  font-weight: 400;
+  z-index: var(--z-controls);
+}
+.nameplate-small {
+  display: block;
+  margin-top: 17px;
+  font-family: var(--font-engraved-sc);
+  font-size: 14px;
+  line-height: 1;
+  letter-spacing: 0.14em;
+}
+.nameplate-big {
+  display: block;
+  font-family: var(--font-display);
+  font-weight: 700;
+  font-size: 37px;
+  line-height: 1.08;
+  letter-spacing: -0.01em;
+}
+
+/* ---- the operator's card, top left ------------------------------------------------------ */
+
+.op-card {
+  position: absolute;
+  left: var(--card-x);
+  top: var(--card-y);
+  width: 214px;
+  height: 92px;
+  rotate: -2.2deg;
+  z-index: var(--z-controls);
+}
+.op-card > img {
+  position: absolute;
+  inset: 0;
+}
+.op-card-line {
+  position: absolute;
+  left: 15px;
+  right: 14px;
+  margin: 0;
+  font-family: var(--font-mechanical);
+  font-size: 13px;
+  line-height: 1;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+.op-card-line:nth-of-type(1) { top: 20px; }
+.op-card-line:nth-of-type(2) { top: 44px; }
+.op-card-key {
+  font-family: var(--font-engraved);
+  font-style: italic;
+  font-size: 13.5px;
+  margin-right: 4px;
+}
+
+/* A paper luggage-tag: the small "tear-off" buttons. */
+.tag-btn {
+  position: absolute;
+  right: 6px;
+  bottom: -4px;
+  width: 92px;
+  height: 28px;
+  padding: 0 4px 2px 16px;
+  border: 0;
+  background: url("../assets/svg/parts/tag.svg") center / 100% 100% no-repeat;
+  font-family: var(--font-engraved);
+  font-style: italic;
+  font-size: 14px;
+  line-height: 26px;
+  color: var(--color-ink);
+  rotate: 3deg;
+  transition: rotate var(--duration-quick) var(--ease-standard), translate var(--duration-quick) var(--ease-standard);
+}
+.tag-btn:hover { rotate: 6deg; translate: 0 1px; }
+
+/* ---- the ear-trumpet: sound on / off ----------------------------------------------------- */
+
+.horn {
+  position: absolute;
+  left: var(--horn-x);
+  top: var(--horn-y);
+  width: 112px;
+  height: 106px;
+  padding: 0;
+  border: 0;
+  background: none;
+  z-index: var(--z-controls);
+  transform-origin: 58px 100px;
+  transition: rotate var(--duration-standard) var(--ease-mechanical);
+}
+.horn img {
+  position: absolute;
+  inset: 0;
+}
+.horn:hover { rotate: -4deg; }
+/* Muted: a cork goes in the end of it. */
+.horn .horn-bung {
+  opacity: 0;
+  translate: -14px -6px;
+  transition: opacity var(--duration-quick) var(--ease-standard), translate var(--duration-standard) var(--ease-mechanical);
+}
+.horn[aria-pressed="false"] .horn-bung {
+  opacity: 1;
+  translate: 0 0;
+}
+
+/* ---- too small a window -------------------------------------------------------------------- */
+
+.too-small {
+  position: fixed;
+  inset: 0;
+  z-index: 12;
+  display: grid;
+  place-content: center;
+  justify-items: center;
+  gap: var(--space-3);
+  padding: var(--space-5);
+  background: var(--color-parchment);
+  text-align: center;
+  font-family: var(--font-engraved);
+  font-size: 18px;
+  color: var(--color-ink);
+}
+.too-small img { width: 200px; }
+.too-small p { max-width: 30ch; }
+.too-small-title {
+  font-family: var(--font-display);
+  font-weight: 700;
+  font-size: 24px;
+  line-height: 1.15;
+}

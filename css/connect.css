@@ -1,0 +1,226 @@
+/* Screen 1: choosing an engine and giving it a key, set out as the title page of an old
+   book: a centred title, a pen flourish, two engraved plates to choose between.
+   Unlike the console this is ordinary flowing layout; there is not much to it. */
+
+.screen-connect {
+  display: grid;
+  place-items: center;
+  padding: var(--space-6) var(--space-4) var(--space-4);
+  color: var(--color-ink);
+  font-family: var(--font-engraved);
+}
+
+.frontispiece {
+  position: relative;
+  width: min(820px, 100%);
+  padding: 46px 60px 34px;
+  text-align: center;
+  /* a double pen rule, as round a title page */
+  border: 2px solid var(--color-ink);
+  outline: 1px solid var(--color-ink);
+  outline-offset: -9px;
+  border-radius: 3px 5px 4px 6px;
+}
+
+/* Two cogs caught behind the corners of the rule. Decoration only. */
+.frontispiece-cog {
+  position: absolute;
+  pointer-events: none;
+}
+.frontispiece-cog--a { right: -58px; top: -54px; width: 132px; rotate: 11deg; }
+.frontispiece-cog--b { left: -40px; bottom: -36px; width: 88px; rotate: -8deg; }
+
+.connect-title {
+  font-family: var(--font-display);
+  font-weight: 700;
+  font-size: clamp(2.6rem, 1.8rem + 3.4vw, 4.1rem);
+  line-height: 1;
+  letter-spacing: -0.015em;
+}
+.connect-title-small {
+  display: block;
+  margin-bottom: 10px;
+  font-family: var(--font-engraved-sc);
+  font-weight: 400;
+  font-size: 0.34em;
+  letter-spacing: 0.16em;
+}
+
+.connect-subtitle {
+  max-width: 34em;
+  margin: 16px auto 0;
+  font-style: italic;
+  font-size: 1.22rem;
+  line-height: 1.35;
+}
+
+.flourish {
+  width: 380px;
+  max-width: 80%;
+  margin: 16px auto 22px;
+}
+
+/* ---- the two engines ------------------------------------------------------------- */
+
+.engine-choice {
+  border: 0;
+  padding: 0;
+  margin: 0 0 26px;
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 22px;
+}
+
+.engine-card {
+  position: relative;
+  display: grid;
+  justify-items: center;
+  align-content: start;
+  gap: 2px;
+  padding: 18px 18px 16px;
+  background: rgba(247, 241, 225, 0.55);
+  border: 1.5px solid var(--color-ink);
+  border-radius: 4px 3px 5px 3px;
+  cursor: pointer;
+  transition: background var(--duration-quick) var(--ease-standard), translate var(--duration-quick) var(--ease-standard), box-shadow var(--duration-quick) var(--ease-standard);
+}
+.engine-card:hover { translate: 0 -2px; }
+/* Chosen: the plate lifts off the page and its jewel lights. */
+.engine-card:has(input:checked) {
+  background: var(--color-paper-white);
+  border-width: 2.5px;
+  padding: 17px 17px 15px;
+  box-shadow: 4px 5px 0 rgba(42, 33, 27, 0.3);
+}
+.engine-card:has(input:focus-visible) {
+  outline: 3px solid var(--color-valve-glow);
+  outline-offset: 3px;
+}
+
+/* The radio button is a jewel, as on the machine's organ stops. */
+.engine-card input {
+  appearance: none;
+  -webkit-appearance: none;
+  position: absolute;
+  right: 10px;
+  top: 10px;
+  width: 22px;
+  height: 22px;
+  margin: 0;
+  background: url("../assets/svg/parts/jewel.svg") center / contain no-repeat;
+  cursor: pointer;
+}
+.engine-card input::after {
+  content: "";
+  position: absolute;
+  inset: -21px;
+  background: url("../assets/svg/parts/jewel-glow.svg") center / contain no-repeat;
+  opacity: 0;
+  transition: opacity var(--duration-quick) var(--ease-standard);
+}
+.engine-card input:checked::after { opacity: 1; }
+.engine-card input:focus-visible { outline: none; }
+
+.engine-card-art {
+  width: 210px;
+  height: 128px;
+  margin-bottom: 6px;
+}
+.engine-card-name {
+  font-family: var(--font-display);
+  font-weight: 700;
+  font-size: 1.45rem;
+  line-height: 1.1;
+}
+.engine-card-tag {
+  font-style: italic;
+  font-size: 1.05rem;
+}
+.engine-card-desc {
+  margin-top: 8px;
+  font-family: var(--font-body);
+  font-size: 0.9rem;
+  line-height: 1.45;
+  color: var(--color-slate);
+}
+.engine-card-link {
+  display: block;
+  margin-top: 6px;
+  color: var(--color-ink);
+  text-underline-offset: 3px;
+}
+
+/* ---- the key ------------------------------------------------------------------------- */
+
+.key-row {
+  display: flex;
+  align-items: flex-end;
+  justify-content: center;
+  gap: 22px;
+}
+.key-field { flex: 1 1 auto; max-width: 400px; text-align: left; }
+.key-field-label {
+  display: block;
+  margin: 0 0 4px 4px;
+  font-family: var(--font-engraved-sc);
+  font-size: 1rem;
+  letter-spacing: 0.06em;
+}
+/* A brass escutcheon: the key lies along it and the field is the slot beside. */
+.key-plate {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  height: 46px;
+  padding: 0 12px 0 10px;
+  background: linear-gradient(180deg, rgba(217, 171, 92, 0.75), rgba(184, 134, 59, 0.7));
+  border: 2px solid var(--color-ink);
+  border-radius: 23px 6px 6px 23px;
+}
+.key-plate-art { width: 84px; flex: none; }
+.key-plate input {
+  flex: 1 1 auto;
+  min-width: 0;
+  height: 30px;
+  padding: 2px 8px 0;
+  border: 1.5px solid var(--color-ink);
+  border-radius: 2px;
+  background: var(--color-paper-white);
+  box-shadow: inset 0 2px 3px rgba(42, 33, 27, 0.22);
+  color: var(--color-ink);
+  font-family: var(--font-mechanical);
+  font-size: 15px;
+}
+.key-plate input::placeholder { color: var(--color-slate); opacity: 0.8; }
+
+.connect-error {
+  margin: 14px 0 0;
+  scroll-margin-block: 28px;   /* engine-connect.js scrolls to it; keep it off the window's edge */
+  color: var(--color-rust);
+  font-family: var(--font-mechanical);
+  font-size: 0.95rem;
+}
+
+.key-hint,
+.connect-inspo {
+  max-width: 44em;
+  margin: 16px auto 0;
+  font-family: var(--font-body);
+  font-size: 0.86rem;
+  line-height: 1.5;
+  color: var(--color-slate);
+}
+.connect-inspo {
+  margin-top: 18px;
+  padding-top: 16px;
+  border-top: 1px solid rgba(42, 33, 27, 0.4);
+}
+.connect-inspo a { color: var(--color-ink); text-underline-offset: 3px; }
+
+@media (max-width: 700px) {
+  .frontispiece { padding: 34px 22px 26px; }
+  .engine-choice { grid-template-columns: 1fr; }
+  .key-row { flex-direction: column; align-items: stretch; }
+  .key-field { max-width: none; }
+  .frontispiece-cog { display: none; }
+}

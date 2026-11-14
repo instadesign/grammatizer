@@ -28,11 +28,16 @@
 
   --color-paper-white: #f7f1e1;
 
+  /* Pen-and-wash additions (mirrored in tools/draw/ink.py, which draws the artwork). */
+  --color-ink: #2a211b;      /* sepia: every drawn line, and all lettering on the machine */
+  --color-payne: #5d6b7a;    /* Payne's grey: shadow washes */
+  --color-sienna: #9a6239;   /* wood */
+
   /* ---- Semantic aliases ------------------------------------------------ */
   --bg-console:        var(--color-parchment);
   --bg-panel:          var(--color-paper-white);
   --bg-ignition:       var(--color-iron-panel);
-  --text-primary:      var(--color-iron);
+  --text-primary:      var(--color-ink);
   --text-secondary:    var(--color-slate);
   --text-on-dark:      var(--color-brass-light);
   --border-etched:     var(--color-iron);
@@ -44,10 +49,14 @@
   /* ---- Type -------------------------------------------------------------
      Fraunces: display, used sparingly (title, screen headings).
      Special Elite: mechanical labels, ignition boot text, lever/dial captions.
-     Literata: the manuscript itself — long-form reading face. */
+     Literata: the manuscript itself — long-form reading face.
+     IM Fell English: engraved plates and hand captions on the drawing (its small caps
+     for plate titles, its italic for captions and tags). */
   --font-display: "Fraunces", "Iowan Old Style", Georgia, serif;
   --font-mechanical: "Special Elite", "Courier New", monospace;
   --font-body: "Literata", Georgia, "Times New Roman", serif;
+  --font-engraved: "IM Fell English", "Iowan Old Style", Georgia, serif;
+  --font-engraved-sc: "IM Fell English SC", "IM Fell English", Georgia, serif;
 
   --text-xs:   clamp(0.72rem, 0.68rem + 0.2vw, 0.8rem);
   --text-sm:   clamp(0.82rem, 0.78rem + 0.2vw, 0.9rem);
@@ -67,8 +76,6 @@
   --space-8: 4.5rem;
 
   /* ---- Structure ---------------------------------------------------------- */
-  --drawer-width: 340px; /* the off-canvas setup drawer's own width, referenced by
-    the manuscript placeholder too so its text doesn't render underneath the drawer */
   --radius-rivet: 2px;    /* almost-sharp — this is a riveted machine, not a soft app */
   --radius-gauge: 50%;
   --border-hairline: 1px solid var(--color-iron);
@@ -90,10 +97,10 @@
   --ease-standard: cubic-bezier(0.4, 0, 0.2, 1);
 
   /* ---- Layering --------------------------------------------------------- */
-  --z-console: 1;
-  --z-panel-lock: 5;
-  --z-console-header: 6;
-  --z-ignition: 10;
+  --z-scenery: 1;
+  --z-controls: 2;
+  --z-shutter: 3;
+  --z-grain: 15;             /* paper grain, multiplied over everything drawn */
   --z-transition-overlay: 20;
   --z-toast: 30;
 }

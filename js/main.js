@@ -17,6 +17,8 @@ Grammatizer.router = (function () {
     };
     transitionOverlay = document.getElementById("machine-transition");
 
+    Grammatizer.stage.init();
+    Grammatizer.machine.init();
     Grammatizer.screenConnect.init();
     Grammatizer.screenIgnition.init();
     Grammatizer.screenConsole.init();
@@ -95,7 +97,7 @@ Grammatizer.router = (function () {
       transitionOverlay.style.clipPath = "circle(150% at 50% 18%)";
       const anim = transitionOverlay.animate(
         [
-          { clipPath: "circle(150% at 50% 18%)", backgroundColor: "#171512", offset: 0 },
+          { clipPath: "circle(150% at 50% 18%)", backgroundColor: "#2a211b", offset: 0 },
           { clipPath: "circle(150% at 50% 18%)", backgroundColor: "#d98a2b", offset: 0.18 },
           { clipPath: "circle(0% at 50% 18%)", backgroundColor: "#d98a2b", offset: 1 },
         ],

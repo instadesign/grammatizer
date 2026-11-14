@@ -1,16 +1,19 @@
 /* Screen 2 — the boot sequence. Only plays for genuinely new profiles; returning
-   operators skip straight to the console (decided by the router). */
+   operators skip straight to the console (decided by the router).
+
+   Each line is typed onto a strip of ticker tape, and each one lights the next valve
+   in the row above it: five lines, five valves, the machine warming up. */
 
 window.Grammatizer = window.Grammatizer || {};
 
 Grammatizer.screenIgnition = (function () {
   const BOOT_CHAR_MS = 22;
   const BOOT_LINES = [
-    "INITIALIZING GRAMMATIZATOR MK. IV...",
-    "VALVES WARMING. PRESSURE NOMINAL.",
-    "BRASS CONDUITS CLEAR.",
-    "WORD-MEMORY BANKS ONLINE.",
-    "OPERATOR IDENTIFICATION REQUIRED.",
+    "Starting the Grammatizator, Mark IV.",
+    "Valves warming. Pressure nominal.",
+    "Brass conduits clear.",
+    "Word-memory banks awake.",
+    "Operator identification required.",
   ];
 
   let els = {};
@@ -22,6 +25,7 @@ Grammatizer.screenIgnition = (function () {
       form: document.getElementById("ignition-form"),
       nameInput: document.getElementById("operator-name-input"),
       agencyInput: document.getElementById("agency-name-input"),
+      valves: document.querySelectorAll("#ignition-valves .ignition-valve"),
     };
 
     els.form.addEventListener("submit", handleSubmit);
@@ -48,9 +52,11 @@ Grammatizer.screenIgnition = (function () {
   async function play() {
     els.log.innerHTML = "";
     els.form.hidden = true;
+    els.valves.forEach((valve) => valve.classList.remove("is-lit"));
 
-    for (const line of BOOT_LINES) {
-      await typeLine(line);
+    for (let i = 0; i < BOOT_LINES.length; i += 1) {
+      await typeLine(BOOT_LINES[i]);
+      if (els.valves[i]) els.valves[i].classList.add("is-lit");
       els.log.appendChild(document.createTextNode(" "));
     }
 

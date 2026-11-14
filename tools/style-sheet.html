@@ -1,0 +1,164 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<title>Grammatizator: sheet of parts</title>
+<!-- A working reference for the drawing style, not part of the app. Open it through
+     the dev server: http://localhost:5500/tools/style-sheet.html -->
+<style>
+@font-face { font-family: "Fraunces"; src: url("../assets/fonts/Fraunces/Fraunces-Bold.woff2") format("woff2"); font-weight: 700; }
+@font-face { font-family: "IM Fell English"; src: url("../assets/fonts/IMFellEnglish/IMFellEnglish-Regular.woff2") format("woff2"); }
+@font-face { font-family: "IM Fell English"; src: url("../assets/fonts/IMFellEnglish/IMFellEnglish-Italic.woff2") format("woff2"); font-style: italic; }
+@font-face { font-family: "IM Fell English SC"; src: url("../assets/fonts/IMFellEnglishSC/IMFellEnglishSC-Regular.woff2") format("woff2"); }
+@font-face { font-family: "Special Elite"; src: url("../assets/fonts/SpecialElite/SpecialElite-Regular.woff2") format("woff2"); }
+:root { --paper: #ede0c8; --ink: #2a211b; }
+body { margin: 0; background: var(--paper); color: var(--ink); font-family: "IM Fell English", Georgia, serif; }
+.grain { position: fixed; inset: 0; background: url("../assets/svg/paper.svg"); mix-blend-mode: multiply; pointer-events: none; z-index: 9; }
+main { width: 1180px; margin: 0 auto; padding: 44px 0 70px; }
+h1 { font: 700 46px/1.05 "Fraunces", serif; margin: 0; letter-spacing: -0.01em; }
+.sub { font-style: italic; font-size: 21px; margin: 8px 0 34px; }
+.figs { display: grid; grid-template-columns: 330px 1fr 1fr; gap: 34px 46px; align-items: end; }
+figure { margin: 0; }
+figcaption { font-style: italic; font-size: 17px; margin-top: 10px; border-top: 1px solid rgba(42, 33, 27, 0.45); padding-top: 6px; }
+figcaption b { font: 400 15px "IM Fell English SC", serif; letter-spacing: 0.04em; margin-right: 6px; }
+button, label { cursor: pointer; }
+.unbutton { background: none; border: 0; padding: 0; display: block; }
+
+.lever { position: relative; width: 260px; height: 300px; margin: 0 auto; }
+.lever img { position: absolute; }
+.lever .base { left: 0; bottom: 0; }
+.lever .arm { left: 90px; bottom: -12px; transform-origin: 40px 226px; transform: rotate(-30deg); transition: transform 420ms cubic-bezier(0.34, 1.56, 0.64, 1); }
+.lever[aria-pressed="true"] .arm { transform: rotate(30deg); }
+
+.stops { display: flex; gap: 26px; justify-content: center; }
+.stop { position: relative; width: 96px; height: 118px; display: block; }
+.stop input { position: absolute; opacity: 0; }
+.stop img { position: absolute; }
+.stop .seat { left: 16px; top: 4px; }
+.stop .shadow { left: 12px; top: 2px; opacity: 0.55; transition: transform 200ms, opacity 200ms; }
+.stop .shaft { left: 48px; top: 29px; transform-origin: 0 7px; transform: rotate(138deg) scaleX(0.2); transition: transform 200ms; }
+.stop .knob { left: 15px; top: 9px; transition: transform 200ms cubic-bezier(0.34, 1.56, 0.64, 1); }
+.stop .jewel { left: 70px; top: 0; }
+.stop .glow { left: 49px; top: -21px; opacity: 0; transition: opacity 160ms; }
+.stop input:checked ~ .knob { transform: translate(-13px, 12px) scale(1.06); }
+.stop input:checked ~ .shaft { transform: rotate(138deg) scaleX(0.72); }
+.stop input:checked ~ .shadow { transform: translate(2px, 14px) scale(1.12); opacity: 0.9; }
+.stop input:checked ~ .glow { opacity: 1; }
+.stop .tag { position: absolute; left: 0; right: 0; top: 80px; text-align: center; font: italic 15px/1.1 "IM Fell English", serif; }
+
+.drum { position: relative; width: 250px; height: 42px; margin: 0 auto 16px; }
+.drum img { position: absolute; left: 0; top: 0; }
+.drum .wheel { left: 220px; top: 6px; }
+.drum .card { position: absolute; left: 13px; top: 7px; width: 196px; height: 28px; overflow: hidden; }
+.drum .card span { display: block; height: 28px; font: 14.5px/29px "Special Elite", monospace; text-align: center; transition: transform 260ms cubic-bezier(0.3, 1.4, 0.6, 1); }
+.plate { font: 15px "IM Fell English SC", serif; letter-spacing: 0.05em; text-align: center; margin-bottom: 5px; }
+
+.gauge { position: relative; width: 116px; height: 116px; margin: 0 auto; }
+.gauge img { position: absolute; inset: 0; }
+.gauge .needle { transform: rotate(calc(-125deg + var(--v, 0.3) * 250deg)); transition: transform 300ms cubic-bezier(0.3, 1.6, 0.6, 1); }
+.gauge .name { position: absolute; left: 0; right: 0; top: 73px; text-align: center; font: 10px "IM Fell English SC", serif; letter-spacing: 0.08em; }
+.spin { animation: spin 9s linear infinite; }
+.spin.rev { animation-duration: 5.8s; animation-direction: reverse; }
+@keyframes spin { to { transform: rotate(360deg); } }
+.train { position: relative; height: 150px; }
+.train img { position: absolute; }
+.swatches { display: flex; gap: 14px; margin-top: 44px; font-size: 15px; font-style: italic; }
+.swatches span { flex: 1; text-align: center; }
+.swatches i { display: block; height: 44px; border-radius: 46% 54% 50% 50% / 60% 48% 52% 40%; margin-bottom: 6px; opacity: 0.72; }
+</style>
+</head>
+<body>
+<div class="grain"></div>
+<main>
+  <h1>The Great Automatic Grammatizator</h1>
+  <p class="sub">A sheet of parts, drawn in pen and wash. Everything here works: pull, turn and press.</p>
+
+  <div class="figs">
+    <figure>
+      <button class="unbutton lever" aria-pressed="false" onclick="this.setAttribute('aria-pressed', this.getAttribute('aria-pressed') !== 'true')">
+        <img class="base" src="../assets/svg/parts/lever-base.svg" alt="">
+        <img class="arm" src="../assets/svg/parts/lever-arm.svg" alt="">
+      </button>
+      <figcaption><b>Fig. 1</b> The lever, which stays thrown while the machine writes.</figcaption>
+    </figure>
+
+    <figure>
+      <div class="stops">
+        <label class="stop"><input type="checkbox" checked>
+          <img class="seat" src="../assets/svg/parts/stop-seat.svg" alt=""><img class="shadow" src="../assets/svg/parts/stop-shadow.svg" alt=""><img class="shaft" src="../assets/svg/parts/stop-shaft.svg" alt=""><img class="knob" src="../assets/svg/parts/stop-knob.svg" alt=""><img class="jewel" src="../assets/svg/parts/jewel.svg" alt=""><img class="glow" src="../assets/svg/parts/jewel-glow.svg" alt="">
+          <span class="tag">Ticking Clock</span></label>
+        <label class="stop"><input type="checkbox">
+          <img class="seat" src="../assets/svg/parts/stop-seat.svg" alt=""><img class="shadow" src="../assets/svg/parts/stop-shadow.svg" alt=""><img class="shaft" src="../assets/svg/parts/stop-shaft.svg" alt=""><img class="knob" src="../assets/svg/parts/stop-knob.svg" alt=""><img class="jewel" src="../assets/svg/parts/jewel.svg" alt=""><img class="glow" src="../assets/svg/parts/jewel-glow.svg" alt="">
+          <span class="tag">Slapstick Mishap</span></label>
+        <label class="stop"><input type="checkbox">
+          <img class="seat" src="../assets/svg/parts/stop-seat.svg" alt=""><img class="shadow" src="../assets/svg/parts/stop-shadow.svg" alt=""><img class="shaft" src="../assets/svg/parts/stop-shaft.svg" alt=""><img class="knob" src="../assets/svg/parts/stop-knob.svg" alt=""><img class="jewel" src="../assets/svg/parts/jewel.svg" alt=""><img class="glow" src="../assets/svg/parts/jewel-glow.svg" alt="">
+          <span class="tag">Ominous Omen</span></label>
+      </div>
+      <figcaption><b>Fig. 2</b> Organ stops. A pulled stop comes out towards you and lights its jewel.</figcaption>
+    </figure>
+
+    <figure>
+      <div class="plate">Theme &amp; Setting</div>
+      <div class="drum" id="drum">
+        <img src="../assets/svg/parts/drum.svg" alt="">
+        <div class="card"><span>The Sea Bottom</span></div>
+        <button class="unbutton" style="position:absolute;left:218px;top:0;width:32px;height:42px" aria-label="Next setting"><img class="wheel" style="left:2px" src="../assets/svg/parts/thumbwheel.svg" alt=""></button>
+      </div>
+      <figcaption><b>Fig. 3</b> A pre-selector drum. The wheel on its right rolls the card round.</figcaption>
+    </figure>
+
+    <figure>
+      <div class="gauge" id="gauge" style="--v:0.3">
+        <img src="../assets/svg/parts/gauge.svg" alt=""><span class="name">Passion</span>
+        <img class="needle" src="../assets/svg/parts/gauge-needle.svg" alt=""><img src="../assets/svg/parts/gauge-glass.svg" alt="">
+      </div>
+      <input type="range" min="0" max="10" value="3" style="display:block;margin:12px auto 0;width:160px" aria-label="Passion" oninput="document.getElementById('gauge').style.setProperty('--v', this.value / 10)">
+      <figcaption><b>Fig. 4</b> The passion-gauge, as named in the story.</figcaption>
+    </figure>
+
+    <figure>
+      <div class="train">
+        <img class="spin" style="left:60px;top:8px" src="../assets/svg/parts/cog-a.svg" alt="">
+        <img class="spin rev" style="left:182px;top:42px" src="../assets/svg/parts/cog-b.svg" alt="">
+        <img class="spin" style="left:256px;top:4px;animation-duration:3.4s" src="../assets/svg/parts/cog-c.svg" alt="">
+      </div>
+      <figcaption><b>Fig. 5</b> Gearing. It turns only while a story is being written.</figcaption>
+    </figure>
+
+    <figure>
+      <img src="../assets/svg/parts/whistle.svg" alt="" style="display:block;margin:0 auto">
+      <figcaption><b>Fig. 6</b> The whistle, which puffs each time a passage arrives.</figcaption>
+    </figure>
+  </div>
+
+  <div class="swatches">
+    <span><i style="background:#b8863b"></i>Brass</span>
+    <span><i style="background:#5b8a76"></i>Verdigris</span>
+    <span><i style="background:#d98a2b"></i>Ember</span>
+    <span><i style="background:#a63d40"></i>Madder</span>
+    <span><i style="background:#5d6b7a"></i>Payne's grey</span>
+    <span><i style="background:#9a6239"></i>Sienna</span>
+    <span><i style="background:#2a211b"></i>Sepia ink</span>
+  </div>
+</main>
+<script>
+(function () {
+  var options = ["The Sea Bottom", "Army Life", "Pioneer Days", "Wild West", "Seafaring", "Childhood Memories"];
+  var i = 0;
+  var drum = document.getElementById("drum");
+  var card = drum.querySelector(".card");
+  drum.querySelector("button").addEventListener("click", function () {
+    i = (i + 1) % options.length;
+    var next = document.createElement("span");
+    next.textContent = options[i];
+    card.appendChild(next);
+    var old = card.firstElementChild;
+    requestAnimationFrame(function () {
+      old.style.transform = next.style.transform = "translateY(-28px)";
+    });
+    setTimeout(function () { old.remove(); next.style.transition = "none"; next.style.transform = ""; }, 280);
+  });
+})();
+</script>
+</body>
+</html>

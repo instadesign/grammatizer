@@ -1,6 +1,10 @@
-/* Screen 3 — the illustrated console. Setup + auxiliary panels live in an off-canvas
-   drawer that slides fully away once composition starts; only the continuous dials
-   stay live, steering the next beat in real time; conclusion makes them go inert. */
+/* Screen 3 — the illustrated console. The pre-selectors lock behind a shutter once
+   composition starts; only the continuous dials (organ stops, foot pedals) stay live,
+   steering the next beat in real time; conclusion makes them go inert.
+
+   This file owns what the console DOES. How it looks while doing it (turning cogs,
+   the status flag, the word counter, sound) is js/machine.js, told what is happening
+   through Grammatizer.machine.setState / setWords / setRecalibration below. */
 
 window.Grammatizer = window.Grammatizer || {};
 
@@ -8,6 +12,8 @@ Grammatizer.screenConsole = (function () {
   const ENGINE_MODEL_NAMES = {
     gemini: "gemini-flash-lite-latest",
     groq: "qwen/qwen3.6-27b", // keep in sync with backend/app/engines.py's ENGINES["groq"]["model"]
+    openai: "gpt-6.1-sol",    // likewise ENGINES["openai"]["model"]
+    claude: "claude-opus-5-5", // likewise ENGINES["claude"]["model"]
   };
 
   let els = {};
@@ -31,6 +37,13 @@ Grammatizer.screenConsole = (function () {
 
   function handlePaperScroll() {
     autoScrollEnabled = isNearBottom();
+  }
+
+  // Things that arrive after the last character (the closing status line, the title
+  // landing above the text) change the page's height without a character being typed.
+  // If the reader was following along at the bottom, keep them there.
+  function keepBottomInView() {
+    if (autoScrollEnabled) els.manuscriptPaper.scrollTop = els.manuscriptPaper.scrollHeight;
   }
 
   function followWriteHead() {
@@ -59,7 +72,6 @@ Grammatizer.screenConsole = (function () {
       dialGroupStops: document.querySelector(".dial-group-stops"),
       dialGroupPedals: document.querySelector(".dial-group-pedals"),
       dialLcd: document.getElementById("dial-lcd"),
-      dialLcdIdle: document.getElementById("dial-lcd-idle"),
       dialProgress: document.getElementById("dial-progress"),
       dialProgressFill: document.getElementById("dial-progress-fill"),
       pullLeverBtn: document.getElementById("btn-pull-lever"),
@@ -70,6 +82,7 @@ Grammatizer.screenConsole = (function () {
       tryAgainBtn: document.getElementById("btn-try-again"),
       newManuscriptBtn: document.getElementById("btn-new-manuscript"),
       forgetMeBtn: document.getElementById("btn-forget-me"),
+      scrambleBtn: document.getElementById("btn-scramble"),
       consoleError: document.getElementById("console-error"),
     };
 
@@ -84,6 +97,7 @@ Grammatizer.screenConsole = (function () {
     els.switchEngineLink.addEventListener("click", (e) => { e.preventDefault(); handleSwitchEngine(); });
     els.bindArchiveBtn.addEventListener("click", handleBindArchive);
     els.forgetMeBtn.addEventListener("click", handleForgetMe);
+    els.scrambleBtn.addEventListener("click", handleScramble);
 
     document.querySelectorAll(".panel-dials [data-dial], .panel-dials [data-stop]").forEach((el) => {
       el.addEventListener("input", () => {
@@ -96,6 +110,8 @@ Grammatizer.screenConsole = (function () {
 
   function syncWordageOutput() {
     els.wordageOutput.textContent = els.wordageInput.value;
+    // The counter over the paper shows the target too; keep it in step while idle.
+    if (!composing && !lastRun) Grammatizer.machine.setWords(0, Number(els.wordageInput.value));
   }
 
   // A rough live estimate for the status line only -- onWordCount (from the actual
@@ -117,6 +133,13 @@ Grammatizer.screenConsole = (function () {
     els.setupBank.querySelectorAll("select[data-field]").forEach((select) => {
       select.selectedIndex = Math.floor(Math.random() * select.options.length);
     });
+  }
+
+  // The crank on the pre-selector cabinet: re-roll every drum at once.
+  function handleScramble() {
+    if (composing || lastRun) return; // the shutter is down; nothing to scramble
+    randomizeSetupFields();
+    Grammatizer.machine.spinDrums();
   }
 
   function collectSetupFields() {
@@ -142,6 +165,7 @@ Grammatizer.screenConsole = (function () {
 
   function lockSetup(locked) {
     els.setupBank.querySelectorAll("[data-field]").forEach((el) => { el.disabled = locked; });
+    els.scrambleBtn.disabled = locked;
     els.setupDrawer.classList.toggle("is-locked", locked);
   }
 
@@ -181,19 +205,18 @@ Grammatizer.screenConsole = (function () {
   // fired by composer.js only once the corresponding beat has genuinely started
   // revealing (see onDialsPending/onDialsHalfway/onDialsApplied there) -- no
   // estimate, no guess, matches the actual event stream.
+  // The bar is now the fluid in the sight-glass beside the lever (js/machine.js sets
+  // its level; css/console.css animates the rise). Same three real steps as before.
   const DIALS_STEP_MS = 260;
 
   function animateDialsFillTo(percent) {
-    els.dialProgressFill.style.transition = `width ${DIALS_STEP_MS}ms ease-out`;
-    els.dialProgressFill.style.width = `${percent}%`;
+    Grammatizer.machine.setRecalibration(percent);
   }
 
   function showDialsPending() {
-    els.dialLcdIdle.hidden = true;
     els.dialProgress.hidden = false;
-    els.dialProgressFill.style.transition = "none";
-    els.dialProgressFill.style.width = "0%";
-    void els.dialProgressFill.offsetWidth; // force reflow so the animate-in below actually starts from 0
+    animateDialsFillTo(0);
+    void els.dialProgressFill.offsetHeight; // force reflow so the rise below actually starts from empty
     animateDialsFillTo(20);
   }
 
@@ -213,9 +236,7 @@ Grammatizer.screenConsole = (function () {
   // for that case, which fills to 100% first as a small "yes, it landed" flourish).
   function hideDialsPending() {
     els.dialProgress.hidden = true;
-    els.dialProgressFill.style.transition = "none";
-    els.dialProgressFill.style.width = "0%";
-    els.dialLcdIdle.hidden = false;
+    animateDialsFillTo(0);
   }
 
   function resetManuscriptDom() {
@@ -254,6 +275,7 @@ Grammatizer.screenConsole = (function () {
       collectSetupFields()
     );
 
+    Grammatizer.machine.leverPulled(); // a click: the one moment sound is allowed to start
     startComposing(setup);
   }
 
@@ -263,7 +285,9 @@ Grammatizer.screenConsole = (function () {
 
     engageLever();
     lockSetup(true);
-    els.pullLeverBtn.hidden = true;
+    // The lever stays where it was thrown, in plain sight, for as long as this
+    // manuscript exists; it just cannot be pulled twice.
+    els.pullLeverBtn.disabled = true;
 
     resetManuscriptDom();
     els.manuscriptTitle.hidden = true;
@@ -297,6 +321,8 @@ Grammatizer.screenConsole = (function () {
     els.dialLcd.classList.add("is-active"); // the LCD only ticks over while the machine is actually running
 
     setStatus("composing", `The machine is writing... ${countWords(resumeText)} / ${lastRun.setup.target_words} words`);
+    Grammatizer.machine.setState("composing");
+    Grammatizer.machine.setWords(countWords(resumeText), lastRun.setup.target_words);
 
     composerController = Grammatizer.composer.createController({
       setup: lastRun.setup,
@@ -307,10 +333,15 @@ Grammatizer.screenConsole = (function () {
       onTextGrow: (text) => {
         lastRun.storyText = text;
         renderManuscriptText(text);
+        Grammatizer.machine.typed(text.slice(-1));
+        Grammatizer.machine.setWords(countWords(text), lastRun.setup.target_words);
         if (!composerController.isPaused()) {
           setStatus("composing", `The machine is writing... ${countWords(text)} / ${lastRun.setup.target_words} words`);
         }
       },
+      // Real events from the beat loop, so the whistle and valves move when
+      // something actually happened rather than on a timer.
+      onFetchState: (waiting, arrived) => Grammatizer.machine.setWaiting(waiting, arrived),
       onWordCount: (n) => {
         lastRun.wordCount = n;
       },
@@ -335,10 +366,12 @@ Grammatizer.screenConsole = (function () {
       composerController.resume();
       els.pauseBtn.textContent = "Pause";
       setStatus("composing", `The machine is writing... ${lastRun.wordCount} / ${lastRun.setup.target_words} words`);
+      Grammatizer.machine.setState("composing");
     } else {
       composerController.pause();
       els.pauseBtn.textContent = "Resume";
-      setStatus("paused", `Paused — ${lastRun.wordCount} words so far.`);
+      setStatus("paused", `Paused — ${countWords(lastRun.storyText)} words so far.`);
+      Grammatizer.machine.setState("paused");
     }
   }
 
@@ -354,7 +387,12 @@ Grammatizer.screenConsole = (function () {
     els.dialLcd.classList.remove("is-active");
     els.pauseBtn.hidden = true;
     els.stopBtn.hidden = true;
+    // Stop can land part-way through a beat, so count what is actually on the page.
+    lastRun.wordCount = countWords(lastRun.storyText);
     setStatus("concluded", `Manuscript stopped — ${lastRun.wordCount} words.`);
+    Grammatizer.machine.setState("concluded");
+    Grammatizer.machine.setWords(lastRun.wordCount);
+    keepBottomInView();
     els.bindArchiveBtn.hidden = false;
     els.switchEngineLink.hidden = true;
     els.tryAgainBtn.hidden = true;
@@ -372,6 +410,9 @@ Grammatizer.screenConsole = (function () {
     els.pauseBtn.hidden = true;
     els.stopBtn.hidden = true;
     setStatus("concluded", `Manuscript complete — ${lastRun.wordCount} words.`);
+    Grammatizer.machine.setState("concluded");
+    Grammatizer.machine.setWords(lastRun.wordCount);
+    keepBottomInView();
     els.bindArchiveBtn.hidden = false;
     els.switchEngineLink.hidden = true;
     els.tryAgainBtn.hidden = true;
@@ -402,6 +443,7 @@ Grammatizer.screenConsole = (function () {
       run.title = title;
       els.manuscriptTitle.textContent = title;
       els.manuscriptTitle.hidden = false;
+      keepBottomInView();
     } catch (err) {
       // Silent by design -- see comment above.
     }
@@ -416,13 +458,19 @@ Grammatizer.screenConsole = (function () {
     els.pauseBtn.hidden = true;
     els.stopBtn.hidden = true;
 
-    if (err && (err.code === "missing_api_key" || err.code === "invalid_api_key")) {
+    // A key the engine will not accept, or (the two paid engines only) a good key on
+    // an account with no credit: neither is cured by trying again, and both are put
+    // right on the title page, so that is where the reader goes, with the reason.
+    if (err && (err.code === "missing_api_key" || err.code === "invalid_api_key" || err.code === "no_credit")) {
       handleNewManuscript();
       Grammatizer.router.backToConnect(err.message || "The machine rejected that key.");
       return;
     }
 
     setStatus("jammed", (err && err.message) || "The machine has jammed.");
+    Grammatizer.machine.setState("jammed");
+    // The message is the newest thing on the paper: make sure it is in view.
+    els.manuscriptPaper.scrollTop = els.manuscriptPaper.scrollHeight;
     els.newManuscriptBtn.hidden = false;
     // The manuscript itself isn't lost -- every word composed so far is still
     // right there on the page -- so the primary recovery is always "try the next
@@ -451,8 +499,10 @@ Grammatizer.screenConsole = (function () {
     setDialsInert(false);
     hideDialsPending();
     els.dialLcd.classList.remove("is-active");
-    els.pullLeverBtn.hidden = false;
+    els.pullLeverBtn.disabled = false;
     els.pullLeverBtn.classList.remove("is-engaged");
+    Grammatizer.machine.setState("idle");
+    Grammatizer.machine.setWords(0, Number(els.wordageInput.value));
     els.pauseBtn.hidden = true;
     els.pauseBtn.textContent = "Pause";
     els.stopBtn.hidden = true;
@@ -527,9 +577,12 @@ Grammatizer.screenConsole = (function () {
   }
 
   function onShow() {
+    Grammatizer.stage.fit();
+    Grammatizer.machine.refreshCard();
     syncWordageOutput();
     if (!composing && !lastRun) {
       handleNewManuscript();
+      Grammatizer.machine.spinDrums(); // the drums settle on their freshly dealt settings
     }
   }
 

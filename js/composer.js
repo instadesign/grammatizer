@@ -46,7 +46,7 @@ Grammatizer.composer = (function () {
   const BEAT_FETCH_RETRY_DELAY_MS = 1500;
 
   function isRetryableBeatError(err) {
-    return !(err && (err.code === "missing_api_key" || err.code === "invalid_api_key"));
+    return !(err && (err.code === "missing_api_key" || err.code === "invalid_api_key" || err.code === "no_credit"));
   }
 
   function delay(ms) {
@@ -80,6 +80,9 @@ Grammatizer.composer = (function () {
    *   old values) has actually started revealing -- a genuine progress checkpoint
    * @param {() => void} [opts.onDialsApplied] - the beat reflecting the change has
    *   actually started revealing
+   * @param {(waiting: boolean, arrived?: boolean) => void} [opts.onFetchState] - purely
+   *   for display: a request for the next beat has gone out (true), or has come back
+   *   (false; `arrived` says whether it brought a beat or failed)
    */
   const PAUSE_POLL_MS = 150;
 
@@ -102,11 +105,19 @@ Grammatizer.composer = (function () {
       // Dials are read fresh on every actual attempt, retries included -- a dial
       // moved during a retry's backoff window should still be reflected once the
       // retry lands, same as it would on a normal fetch-ahead call.
-      return fetchBeatWithRetry(() => {
+      if (opts.onFetchState) opts.onFetchState(true);
+      const request = fetchBeatWithRetry(() => {
         const dials = opts.getDials();
         const payload = Object.assign({}, opts.setup, dials, { story_so_far: storySoFar });
         return Grammatizer.api.generateBeat(payload);
       });
+      // Reporting only: this branch swallows nothing the loop needs, because the loop
+      // awaits `request` itself and handles its failure there.
+      request.then(
+        () => { if (!cancelled && opts.onFetchState) opts.onFetchState(false, true); },
+        () => { if (!cancelled && opts.onFetchState) opts.onFetchState(false, false); }
+      );
+      return request;
     }
 
     function beginBeatReveal() {

@@ -43,6 +43,28 @@
   font-display: swap;
 }
 
+@font-face {
+  font-family: "IM Fell English";
+  src: url("../assets/fonts/IMFellEnglish/IMFellEnglish-Regular.woff2") format("woff2");
+  font-weight: 400;
+  font-style: normal;
+  font-display: swap;
+}
+@font-face {
+  font-family: "IM Fell English";
+  src: url("../assets/fonts/IMFellEnglish/IMFellEnglish-Italic.woff2") format("woff2");
+  font-weight: 400;
+  font-style: italic;
+  font-display: swap;
+}
+@font-face {
+  font-family: "IM Fell English SC";
+  src: url("../assets/fonts/IMFellEnglishSC/IMFellEnglishSC-Regular.woff2") format("woff2");
+  font-weight: 400;
+  font-style: normal;
+  font-display: swap;
+}
+
 *, *::before, *::after {
   box-sizing: border-box;
 }
@@ -80,10 +102,6 @@ input, select, button, textarea {
   font-size: inherit;
 }
 
-/* iOS auto-zooms on focus if a text input computes under 16px. */
-input, select, textarea {
-  font-size: max(var(--text-base), 16px);
-}
 
 img, svg {
   display: block;
@@ -92,6 +110,13 @@ img, svg {
 
 a {
   color: var(--color-brass-dark);
+}
+
+/* When the app is embedded in another site's page (as it is on the WordPress blog),
+   that site's heading colour must not leak in: headings here are part of the drawing
+   and take the ink colour of the screen they are on. */
+.screen :is(h1, h2, h3) {
+  color: inherit;
 }
 
 /* ---- Focus ---------------------------------------------------------- */
@@ -131,11 +156,21 @@ a {
   display: none !important;
 }
 
-/* Global horizontal-scroll guard: wide content (the manuscript slot, panels) must
-   scroll internally, never the page body. */
-.scroll-x {
-  overflow-x: auto;
-  -webkit-overflow-scrolling: touch;
+/* Paper grain: one fixed sheet of noise multiplied over whatever screen is showing, so
+   ink, wash, lettering and the manuscript all sit on the same tooth. Purely visual. */
+.grain {
+  position: fixed;
+  inset: 0;
+  z-index: var(--z-grain);
+  background: url("../assets/svg/paper.svg");
+  mix-blend-mode: multiply;
+  pointer-events: none;
+}
+
+/* The console fills the window and carries its own credit (the maker's plate on the
+   left cabinet), so the page footer belongs to the first two screens only. */
+body:has(#screen-console:not([hidden])) .app-footer {
+  display: none;
 }
 
 /* Sits in normal document flow after whichever screen is visible -- reachable by
@@ -143,9 +178,11 @@ a {
 .app-footer {
   max-width: 640px;
   margin: 0 auto;
-  padding: var(--space-6) var(--space-4) var(--space-8);
+  padding: var(--space-5) var(--space-4) var(--space-7);
   text-align: center;
-  font-size: var(--text-xs);
+  font-family: var(--font-engraved);
+  font-style: italic;
+  font-size: var(--text-sm);
   color: var(--text-secondary, #8a8272);
 }
 .app-footer a {
@@ -163,9 +200,8 @@ a {
 .build-tag {
   margin: var(--space-3) 0 0;
   font-family: var(--font-mechanical, monospace);
-  font-size: 10px;
-  letter-spacing: 0.06em;
-  text-transform: uppercase;
+  font-style: normal;
+  font-size: 11px;
   color: var(--text-secondary, #8a8272);
-  opacity: 0.7;
+  opacity: 0.8;
 }

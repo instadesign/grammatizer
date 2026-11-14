@@ -1,109 +1,108 @@
-/* Screen 2 — the ignition/boot sequence: the machine's electronic brain waking up.
-   Dark, brass-phosphor glow (not a generic green terminal — same brass family as the
-   console, this is the same machine, a different layer of it). */
+/* Screen 2: the machine warming up. Five valves, a strip of ticker tape that the boot
+   lines are typed onto (each one lights the next valve, see ignition-onboarding.js),
+   then the operator's card to fill in. Same paper, same ink as everything else: this is
+   the same machine, a minute earlier. */
 
 .screen-ignition {
-  background: var(--bg-ignition);
+  display: grid;
+  place-items: center;
+  padding: var(--space-6) var(--space-4);
+  color: var(--color-ink);
+  font-family: var(--font-engraved);
+}
+
+.ignition-bench {
+  width: min(620px, 100%);
+  display: grid;
+  justify-items: center;
+  gap: 18px;
+}
+
+/* ---- valves ---------------------------------------------------------------------------- */
+
+.ignition-valves {
   display: flex;
-  align-items: center;
-  justify-content: center;
-  padding: var(--space-5);
+  gap: 26px;
+  padding: 0 26px;
+  border-bottom: 2.5px solid var(--color-ink);
 }
-
-.ignition-crt {
+.ignition-valve {
   position: relative;
-  width: min(640px, 100%);
-  min-height: 360px;
-  padding: var(--space-6);
-  background: radial-gradient(ellipse at 50% 30%, #201b12 0%, var(--bg-ignition) 75%);
-  border: 1px solid var(--color-brass-dark);
-  border-radius: 6px;
-  box-shadow: 0 0 40px rgba(217, 138, 43, 0.15), inset 0 0 60px rgba(0, 0, 0, 0.6);
-  overflow: hidden;
+  width: 56px;
+  height: 84px;
+  filter: saturate(0.5);
+  transition: filter 500ms var(--ease-standard);
 }
-
-.ignition-scanlines {
-  position: absolute;
-  inset: 0;
-  pointer-events: none;
-  background: repeating-linear-gradient(
-    to bottom,
-    rgba(217, 138, 43, 0.05) 0px,
-    rgba(217, 138, 43, 0.05) 1px,
-    transparent 2px,
-    transparent 3px
-  );
-  mix-blend-mode: screen;
+.ignition-valve img { position: absolute; inset: 0; }
+.ignition-valve .ignition-valve-glow {
+  inset: -18px -14px -8px;
+  width: 84px;
+  height: 110px;
+  opacity: 0;
+  transition: opacity 700ms var(--ease-standard);
 }
+.ignition-valve.is-lit { filter: none; }
+.ignition-valve.is-lit .ignition-valve-glow { opacity: 1; }
 
+/* ---- ticker tape -------------------------------------------------------------------------- */
+
+.ignition-tape {
+  width: 100%;
+  min-height: 158px;
+  padding: 14px 30px 12px;
+  background: var(--color-paper-white);
+  border-block: 1.5px solid var(--color-ink);
+  /* torn off at both ends */
+  clip-path: polygon(0 0, 100% 0, 98.6% 14%, 100% 30%, 98.8% 46%, 100% 62%, 98.6% 80%, 100% 100%,
+                     0 100%, 1.4% 84%, 0 66%, 1.2% 50%, 0 34%, 1.4% 16%);
+}
 .ignition-log {
   font-family: var(--font-mechanical);
-  font-size: var(--text-sm);
-  line-height: 1.9;
-  color: var(--color-brass-light);
-  text-shadow: 0 0 6px var(--color-valve-glow-soft);
-  white-space: pre-wrap;
-  min-height: 4em;
+  font-size: 1.05rem;
+  line-height: 1.6;
 }
 
-.ignition-log .boot-cursor {
-  display: inline-block;
-  width: 0.55em;
-  height: 1em;
-  background: var(--color-brass-light);
-  vertical-align: text-bottom;
-  margin-left: 2px;
-}
+/* ---- the operator's card --------------------------------------------------------------------- */
 
 .ignition-form {
-  margin-top: var(--space-6);
+  width: min(430px, 100%);
   display: grid;
-  gap: var(--space-5);
+  gap: 16px;
+  padding: 20px 26px 22px;
+  background: var(--color-paper-white);
+  border: 1.5px solid var(--color-ink);
+  border-radius: 3px 5px 3px 4px;
+  box-shadow: 4px 5px 0 rgba(42, 33, 27, 0.28);
+  rotate: -0.8deg;
 }
-
-.ignition-field {
-  display: block;
+.ignition-form-title {
+  font-family: var(--font-engraved-sc);
+  font-size: 1.15rem;
+  letter-spacing: 0.1em;
+  text-align: center;
 }
-
+.ignition-field { display: block; }
 .ignition-prompt {
   display: block;
-  font-family: var(--font-mechanical);
-  font-size: var(--text-sm);
-  color: var(--color-brass-light);
-  text-shadow: 0 0 6px var(--color-valve-glow-soft);
-  margin-bottom: var(--space-2);
-  letter-spacing: 0.03em;
+  font-style: italic;
+  font-size: 1.05rem;
 }
-
+/* written on a ruled line, not typed into a box */
 .ignition-field input {
   width: 100%;
-  min-height: 44px;
-  padding: var(--space-2) 0;
+  height: 36px;
+  padding: 4px 2px 0;
+  border: 0;
+  border-bottom: 1.5px solid var(--color-ink);
+  border-radius: 0;
   background: transparent;
-  border: none;
-  border-bottom: 2px solid var(--color-brass-dark);
-  color: var(--color-paper-white);
+  color: var(--color-ink);
   font-family: var(--font-mechanical);
-  font-size: var(--text-base);
-  caret-color: var(--color-valve-glow);
+  font-size: 1.1rem;
+  caret-color: var(--color-rust);
 }
 .ignition-field input:focus-visible {
-  border-bottom-color: var(--color-valve-glow);
   outline: none;
+  border-bottom: 3px solid var(--color-valve-glow);
 }
-
-.btn-ignition {
-  justify-self: start;
-  background: transparent;
-  border: 2px solid var(--color-brass);
-  color: var(--color-brass-light);
-  font-family: var(--font-mechanical);
-  text-transform: uppercase;
-  letter-spacing: 0.08em;
-  padding: var(--space-3) var(--space-6);
-  border-radius: var(--radius-rivet);
-  min-height: 44px;
-}
-.btn-ignition:hover {
-  background: rgba(217, 138, 43, 0.12);
-}
+.ignition-form .plaque { justify-self: center; margin-top: 4px; }

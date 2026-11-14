@@ -43,6 +43,14 @@ Grammatizer.screenConnect = (function () {
   function showError(message) {
     els.error.textContent = message;
     els.error.hidden = false;
+    // With four engines the title page is taller than most windows, and this message
+    // sits near the foot of it, beside the key. Someone sent back here from the
+    // console (a rejected key, an account with no credit) lands at the top of the
+    // page, so bring the reason into view rather than leave it to be found.
+    els.error.scrollIntoView({
+      block: "nearest",
+      behavior: Grammatizer.state.prefersReducedMotion ? "auto" : "smooth",
+    });
   }
 
   function clearError() {
