@@ -33,6 +33,14 @@ def _gemini_reason(exc: Exception):
     return None
 
 
+def gemini_refused_the_key(exc: Exception) -> bool:
+    """Also used by engines.py: an invalid key and an unacceptable request setting
+    are both a 400 INVALID_ARGUMENT from Gemini, and only the second is worth
+    answering by trying the request another way."""
+    message = str(getattr(exc, "message", "") or "")
+    return _gemini_reason(exc) == "API_KEY_INVALID" or "API key not valid" in message
+
+
 def _gemini_quota_ids(exc: Exception):
     """Confirmed live: a RESOURCE_EXHAUSTED error's own RetryInfo.retryDelay can be
     misleadingly short ("6s") even when the real cause is a hard PerDay quota that
@@ -118,6 +126,26 @@ _OVERLOADED_TYPES = (
 )
 
 
+# Gemini's library does not wrap what its HTTP layer (httpx) raises when a call
+# times out or the connection drops, so those arrive under httpx's own names.
+_HTTPX_TRANSIENT_TYPES = (
+    "ReadTimeout", "ConnectTimeout", "WriteTimeout", "PoolTimeout",
+    "ConnectError", "ReadError", "RemoteProtocolError",
+)
+
+_SAFE_STATUS_RE = re.compile(r"^[A-Z_]{1,40}$")
+
+
+def _gemini_refusal_note(status, api_status: str) -> str:
+    """Google's own status for a refused request, e.g. "400 INVALID_ARGUMENT": the
+    number and the fixed status word only, never the message beside them (see the
+    note at the top of this module). It goes in what the reader is shown because the
+    server's log is somewhere they cannot look, and "the machine jammed" on its own
+    gives whoever they report it to nothing to go on."""
+    word = api_status if _SAFE_STATUS_RE.match(api_status) else ""
+    return f"{status} {word}".strip()
+
+
 def translate_exception(engine_key: str, exc: Exception) -> GenerationError:
     type_name = type(exc).__name__
 
@@ -134,11 +162,9 @@ def translate_exception(engine_key: str, exc: Exception) -> GenerationError:
     if engine_key == "gemini":
         status = getattr(exc, "code", None)
         reason = _gemini_reason(exc)
-        message = str(getattr(exc, "message", "") or "")
-
         api_status = str(getattr(exc, "status", "") or "")
 
-        if reason == "API_KEY_INVALID" or "API key not valid" in message:
+        if gemini_refused_the_key(exc):
             return GenerationError("invalid_api_key", "The engine rejected this API key.", 401)
         if status == 429 or reason == "RESOURCE_EXHAUSTED":
             quota_ids = _gemini_quota_ids(exc)
@@ -152,13 +178,37 @@ def translate_exception(engine_key: str, exc: Exception) -> GenerationError:
             return GenerationError("rate_limited", "The engine is rate-limiting this key right now.", 429)
         if status == 403 or reason == "PERMISSION_DENIED":
             return GenerationError("invalid_api_key", "This key doesn't have access to that model.", 403)
-        if status == 503 or api_status == "UNAVAILABLE":
+        if (
+            status == 503 or api_status == "UNAVAILABLE"
+            or (isinstance(status, int) and status >= 500)
+            or type_name in _HTTPX_TRANSIENT_TYPES
+        ):
             # Google's own infrastructure overloaded, not the caller's key/quota --
             # confirmed live: "This model is currently experiencing high demand."
             # Distinct from rate_limited (which is about *this key's* usage) even
-            # though both are transient and worth retrying the same way.
+            # though both are transient and worth retrying the same way. Its other
+            # 5xx answers, and a call that timed out or lost its connection, are the
+            # same kind of trouble and get the same retry.
             return GenerationError("engine_overloaded", "The engine is overloaded right now.", 503)
-        return GenerationError("engine_error", "The engine failed to respond.", 502)
+        if status == 404:
+            return GenerationError(
+                "engine_error",
+                f"Gemini no longer answers to the model this machine asks for ({_gemini_refusal_note(status, api_status)}). "
+                "Another engine will still write.",
+                502,
+            )
+        if isinstance(status, int) and 400 <= status < 500:
+            # engines._gemini_generate has by now asked every way it knows.
+            return GenerationError(
+                "engine_error",
+                f"Gemini turned the request down ({_gemini_refusal_note(status, api_status)}). "
+                "Another engine will still write.",
+                502,
+            )
+        # Anything else is a fault on this side of the wire (Google's library raising
+        # something of its own, say). The class name alone, for the same reason as the
+        # status above: it is the one clue that reaches whoever has to fix it.
+        return GenerationError("engine_error", f"The engine failed to respond ({type_name}).", 502)
 
     if engine_key == "groq":
         if type_name == "AuthenticationError":

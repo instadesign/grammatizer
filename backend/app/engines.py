@@ -6,9 +6,12 @@ import re
 from typing import Optional
 
 import anthropic
+import pydantic
 from google import genai
 from google.genai import types as genai_types
 from openai import OpenAI
+
+from .errors import gemini_refused_the_key
 
 ENGINES = {
     "gemini": {
@@ -22,6 +25,9 @@ ENGINES = {
         # carries a separate, far more workable allowance -- it's also a better
         # long-term bet than pinning a concrete model given "2.5-flash-lite" itself
         # went stale mid-session today.
+        # The price of an alias: Google repoints it at each new model, and each new
+        # model has accepted a different set of request settings from the last. See
+        # _GEMINI_REQUEST_SHAPES below, which is how the call keeps up.
         "model": "gemini-flash-lite-latest",
     },
     "groq": {
@@ -77,8 +83,47 @@ ENGINES = {
 # the same output limit as the words. So the limit they are given is the caller's
 # max_tokens PLUS this, or a 220-token beat would be spent entirely on thought and come
 # back empty (the same failure the Groq notes above describe). It is a ceiling, not a
-# cost: unused room is not charged for.
+# cost: unused room is not charged for. Gemini gets it too, whenever its thinking
+# cannot be switched off outright (Google counts thought against the limit as well).
 REASONING_HEADROOM_TOKENS = 3000
+
+# How to ask Gemini for a line, in order of preference: as little thinking as the
+# model allows, and the temperature dial honoured if the model still has one.
+#
+# Why a list and not one request: "gemini-flash-lite-latest" is whichever model Google
+# currently puts behind that name, and the settings they accept have changed with
+# every generation (Google's migration notes, read 15 Nov 2026):
+#   - 2.5 Flash-Lite: thinking_budget=0 turns thinking off. The first shape.
+#   - 3.1 / 3.5 Flash-Lite: thinking cannot be turned off, only down to "minimal",
+#     with thinking_level in place of thinking_budget. temperature is "deprecated
+#     and ignored".
+#   - 3.8 Flash and the Gemini 4 models: "minimal" is refused ("low" is the floor),
+#     and for generations after 3.5/3.6 the notes say temperature and its relatives
+#     return an HTTP 400.
+# A setting the model does not take comes back as a 400 that never says which
+# setting it was ("Request contains an invalid argument."), so the only dependable
+# move is to try the next shape. This used to be a single fallback that dropped
+# thinking_budget and kept everything else. A model that refuses temperature as well
+# fails both of those attempts, and the reader gets a jam with nothing on the paper:
+# the likeliest reading of exactly that report on 15 Nov 2026, though not a proven
+# one (there was no Gemini key to hand to reproduce it with). The shape that works is
+# remembered (_gemini_shape below), so the search costs a few quick refusals once per
+# server start, not once per line.
+#
+# Each entry: (thinking_config or None, send temperature and presence_penalty,
+# the model may think and so needs REASONING_HEADROOM_TOKENS).
+_GEMINI_REQUEST_SHAPES = (
+    ({"thinking_budget": 0}, True, False),
+    ({"thinking_level": "minimal"}, True, True),
+    ({"thinking_level": "minimal"}, False, True),
+    ({"thinking_level": "low"}, False, True),
+    # The two below name no thinking setting at all, so they also work with a copy of
+    # Google's library too old to know thinking_level (it refuses the three above
+    # before sending anything; see _gemini_generate).
+    (None, True, True),
+    (None, False, True),
+)
+_gemini_shape = 0  # index of the shape that last worked
 
 # generation.py allows a beat 30 seconds in all and has its own retry loop with that
 # deadline, so the SDKs' built-in retries are switched off (two layers of retries
@@ -133,6 +178,46 @@ def resolve_api_key(engine_key: str, supplied_key: Optional[str]) -> Optional[st
     return os.environ.get(ENGINES[engine_key]["env_var"])
 
 
+def _gemini_generate(client, model: str, prompt: str, temperature: float, max_tokens: int):
+    """Asks Gemini for a line using the first of _GEMINI_REQUEST_SHAPES it accepts,
+    starting from the one that worked last time. Returns (response, may_think).
+    Only a refusal of the request itself moves on to the next shape; a bad key, a
+    rate limit or an outage is raised at once, since no other shape would cure it."""
+    global _gemini_shape
+    refusal = None
+    for step in range(len(_GEMINI_REQUEST_SHAPES)):
+        index = (_gemini_shape + step) % len(_GEMINI_REQUEST_SHAPES)
+        thinking_config, with_sampling, may_think = _GEMINI_REQUEST_SHAPES[index]
+        config = {"max_output_tokens": max_tokens + (REASONING_HEADROOM_TOKENS if may_think else 0)}
+        if thinking_config:
+            config["thinking_config"] = thinking_config
+        if with_sampling:
+            # presence_penalty is a mechanical nudge against reusing a word that's
+            # already appeared, layered under the prompt-level REPETITION_GUIDELINE and
+            # generation.py's own mechanical retry -- it doesn't replace either (a
+            # penalty alone won't stop genuine fixation the way the retry's hard block
+            # does), but it should mean that retry needs to fire less often.
+            config.update(temperature=temperature, presence_penalty=0.3)
+        try:
+            response = client.models.generate_content(model=model, contents=prompt, config=config)
+        except pydantic.ValidationError as exc:
+            # Google's library checks the settings before sending, and this copy of it
+            # does not know one of them. Nothing went over the wire; try the next.
+            refusal = exc
+            continue
+        except genai.errors.ClientError as exc:
+            invalid_request = getattr(exc, "code", None) == 400 and getattr(exc, "status", None) in (
+                None, "", "INVALID_ARGUMENT"
+            )
+            if not invalid_request or gemini_refused_the_key(exc):
+                raise
+            refusal = exc
+            continue
+        _gemini_shape = index
+        return response, may_think
+    raise refusal
+
+
 def call_engine(engine_key: str, api_key: str, prompt: str, temperature: float, max_tokens: int):
     """One completion call. Returns (text, finish_reason, usage_tokens) where
     finish_reason is normalized to 'stop' (finished naturally) or 'length' (cut off
@@ -142,55 +227,26 @@ def call_engine(engine_key: str, api_key: str, prompt: str, temperature: float, 
     engine = ENGINES[engine_key]
 
     if engine_key == "gemini":
-        client = genai.Client(api_key=api_key)
-        # "gemini-flash-lite-latest" is an ALIAS Google repoints over time, not a
-        # pinned model, and its thinking support has flip-flopped under us across
-        # this same session: at one point it silently emitted thinking content
-        # (eating into max_output_tokens), so passing thinking_config to disable it
-        # was the fix -- but confirmed live just now, the alias has moved again and
-        # the *current* resolution 400s on thinking_config entirely, with a fully
-        # generic "Request contains an invalid argument." that says nothing about
-        # thinking specifically. A message-content check for "thinking" is exactly
-        # what missed this. Retry without thinking_config on ANY 400 from the first
-        # attempt instead of trying to pattern-match the message -- if that wasn't
-        # the actual cause, the retry fails too and its own error still propagates
-        # normally.
-        # presence_penalty is a mechanical nudge against reusing a word that's
-        # already appeared, layered under the prompt-level REPETITION_GUIDELINE and
-        # generation.py's own mechanical retry -- it doesn't replace either (a
-        # penalty alone won't stop genuine fixation the way the retry's hard block
-        # does), but it should mean that retry needs to fire less often, which is
-        # itself a small reliability win (fewer retries -> fewer chances to burn a
-        # beat's time budget or trip a rate limit on a retry attempt).
-        config_kwargs = dict(
-            temperature=temperature, max_output_tokens=max_tokens, presence_penalty=0.3
+        client = genai.Client(
+            api_key=api_key,
+            # Milliseconds. Without it a slow answer could outlast generation.py's
+            # whole allowance for the beat.
+            http_options=genai_types.HttpOptions(timeout=int(ENGINE_TIMEOUT_SECONDS * 1000)),
         )
-        try:
-            response = client.models.generate_content(
-                model=engine["model"],
-                contents=prompt,
-                config=genai_types.GenerateContentConfig(
-                    thinking_config=genai_types.ThinkingConfig(thinking_budget=0),
-                    **config_kwargs,
-                ),
-            )
-        except genai.errors.ClientError as exc:
-            if getattr(exc, "code", None) == 400:
-                response = client.models.generate_content(
-                    model=engine["model"],
-                    contents=prompt,
-                    config=genai_types.GenerateContentConfig(**config_kwargs),
-                )
-            else:
-                raise
+        response, may_think = _gemini_generate(client, engine["model"], prompt, temperature, max_tokens)
         candidate = response.candidates[0] if response.candidates else None
         raw_reason = getattr(candidate, "finish_reason", None)
         reason_name = getattr(raw_reason, "name", str(raw_reason))
         if candidate is None or reason_name in _GEMINI_BLOCKED_FINISH_REASONS:
             # Check this BEFORE touching response.text -- see _GEMINI_BLOCKED_FINISH_REASONS.
             raise ContentFilteredError(reason_name if candidate is not None else "NO_CANDIDATES")
-        finish_reason = "stop" if reason_name == "STOP" else "length"
-        return (response.text or ""), finish_reason, None
+        text, cut = (response.text or ""), False
+        if may_think:
+            # The limit sent was max_tokens plus headroom: put the old limit back on
+            # the words, as for the two paid engines.
+            text, cut = _hold_to_budget(text, max_tokens)
+        finish_reason = "stop" if (reason_name == "STOP" and not cut) else "length"
+        return text, finish_reason, None
 
     if engine_key == "groq":
         # Groq exposes an OpenAI-compatible API — the `openai` SDK works unchanged,
