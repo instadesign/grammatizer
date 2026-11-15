@@ -1,8 +1,16 @@
-/* Motion. The console's is all keyed off two things js/machine.js sets on the stage:
+/* Motion. There are two kinds, and only one of them is here.
+
+   What a drawing does by itself (the parrot, the gentleman's pipe, the cat, the kettle,
+   the mouse) is written into its own SVG file by the drawing code (tools/draw/), and
+   played by js/art.js, which rebuilds the drawing in the page as layers. Those files
+   honour "reduce motion" themselves.
+
+   What the PAGE moves is here: whole parts turned, slid or faded by what the machine is
+   doing. The console's is keyed off two things js/machine.js sets on the stage:
 
      data-machine-state = idle | composing | paused | concluded | jammed
-     .is-running          while anything should be turning (it outlives "composing" by
-                          a couple of seconds, so the gearing can coast to a stop)
+     .is-running          while the gearing is being driven (it outlives "composing" by
+                          a couple of seconds, so it can coast down)
 
    One-off flourishes (a puff of steam, the bell, a jam's shudder, a drum rolling) are
    played from JS with the Web Animations API, as is the ignition-to-console wipe in
@@ -43,24 +51,44 @@
 
 /* ---- things that turn ---------------------------------------------------------------- */
 
+/* Each wheel carries two rotations at once, which add up.
+     turn   is the machine being driven: full speed, and only while .is-running.
+     creep  is the machine ticking over: the same gearing fourteen times slower (so the
+            teeth still mesh), and it never stops unless the machine is paused or jammed.
+   They are separate properties (transform and rotate) so that neither disturbs the
+   other: when the drive coasts to a stop, the creep simply carries on from there.
+   --rest is for a wheel that is drawn turned (the middle gear, by half a tooth). */
+@keyframes creep {
+  from { rotate: var(--rest, 0deg); }
+  to { rotate: calc(var(--rest, 0deg) + 360deg); }
+}
+
+.stage { --drive: paused; --idle: running; }
+.stage.is-running { --drive: running; }
+/* Paused holds everything exactly where it is. A jam stops the creep too: it is stuck. */
+.stage[data-machine-state="paused"] { --drive: paused; --idle: paused; }
+.stage[data-machine-state="jammed"] { --idle: paused; }
+
 .turns {
-  animation: turn 9s linear infinite;
-  animation-play-state: paused;
+  --turn: 9s;
+  animation: turn var(--turn) linear infinite, creep calc(var(--turn) * 14) linear infinite;
+  animation-play-state: var(--drive), var(--idle);
 }
 .turns--back { animation-direction: reverse; }
-.flywheel { animation-duration: 6.5s; }
-.cog-big  { animation-duration: 9s; }
-.cog-mid  { animation-duration: 6.19s; }   /* 9s x 11/16: its tooth count against the big cog's */
-.gear     { animation-duration: 4.2s; }
+.flywheel { --turn: 6.5s; }
+.cog-big  { --turn: 9s; }
+.cog-mid  { --turn: 6.19s; }   /* 9s x 11/16: its tooth count against the big cog's */
+.gear     { --turn: 4.2s; }
+.gear--2  { --rest: 22.5deg; }
 
 .governor-arms {
   animation: governor-turn 0.9s ease-in-out infinite;
-  animation-play-state: paused;
+  animation-play-state: var(--drive);
 }
 
 .piston {
   animation: piston-bob 1.1s ease-in-out infinite;
-  animation-play-state: paused;
+  animation-play-state: var(--drive);
 }
 .piston:nth-child(1) { animation-delay: -1.0s; }
 .piston:nth-child(2) { animation-delay: -0.7s; }
@@ -69,19 +97,43 @@
 .piston:nth-child(5) { animation-delay: -0.2s; }
 .piston:nth-child(6) { animation-delay: -0.55s; }
 
-.stage.is-running .turns,
-.stage.is-running .governor-arms,
-.stage.is-running .piston {
-  animation-play-state: running;
+/* The pedal gauges shiver while the gearing is driven. (transform, so that it adds to
+   the needle's reading, which is set with rotate.) */
+@keyframes needle-shiver {
+  0%, 100% { transform: rotate(-1.2deg); }
+  35% { transform: rotate(1.5deg); }
+  70% { transform: rotate(-0.5deg); }
 }
-/* Paused holds everything exactly where it is. */
-.stage[data-machine-state="paused"] .turns,
-.stage[data-machine-state="paused"] .governor-arms,
-.stage[data-machine-state="paused"] .piston {
-  animation-play-state: paused;
+.stage.is-running .gauge .gauge-needle { animation: needle-shiver 0.83s ease-in-out infinite; }
+.stage.is-running .pedal--intensity .gauge-needle { animation-duration: 0.71s; }
+.stage[data-machine-state="paused"] .gauge .gauge-needle { animation-play-state: paused; }
+
+/* At rest, and before anyone has pulled it, the lever gives a small twitch every so
+   often: this is the thing to pull. Not once it is thrown, and not under the pointer,
+   where it has its own lean. */
+@keyframes lever-beckon {
+  0%, 84%, 100% { transform: none; }
+  87% { transform: rotate(4deg); }
+  90% { transform: rotate(-1deg); }
+  93% { transform: rotate(2.4deg); }
+  97% { transform: none; }
+}
+.stage[data-machine-state="idle"] .lever:not(.is-engaged):not(:hover):not(:disabled) .lever-arm {
+  animation: lever-beckon 8s ease-in-out 3s infinite;
 }
 
 /* ---- valves -------------------------------------------------------------------------------- */
+
+/* Warm but not working: a low glow that comes and goes, each valve in its own time. */
+@keyframes valve-idle {
+  0%, 100% { opacity: 0.12; }
+  50% { opacity: 0.34; }
+}
+.stage[data-machine-state="idle"] .valve-glow,
+.stage[data-machine-state="concluded"] .valve-glow {
+  animation: valve-idle 5.6s ease-in-out infinite;
+  animation-delay: calc(var(--i) * -1.37s);
+}
 
 .stage[data-machine-state="composing"] .valve-glow {
   opacity: 1;
@@ -98,6 +150,54 @@
 
 .stage[data-machine-state="jammed"] .flag-lamp {
   animation: lamp-blink 0.9s steps(1) infinite;
+}
+
+/* ---- the title page and the boot screen ---------------------------------------------------- */
+
+/* The two cogs behind the corners of the title page turn, slowly, all the time. They
+   speed up while the pointer is on "Connect the machine" (engine-connect.js: a change
+   of playback rate, which unlike a change of duration does not make them jump). */
+.frontispiece-cog--a { animation: turn 64s linear infinite; }
+.frontispiece-cog--b { animation: turn 44s linear infinite reverse; }   /* 64s x 11/16 */
+
+/* A valve that has lit comes up, then breathes. */
+@keyframes valve-light {
+  from { opacity: 0; }
+  to { opacity: 0.55; }
+}
+.ignition-valve.is-lit .ignition-valve-glow {
+  animation: valve-light 700ms var(--ease-standard) both, valve-breathe 2.6s ease-in-out 700ms infinite;
+}
+.ignition-valve:nth-child(2n).is-lit .ignition-valve-glow { animation-duration: 700ms, 3.1s; }
+.ignition-valve:nth-child(3n).is-lit .ignition-valve-glow { animation-duration: 700ms, 2.2s; }
+
+/* The drawings that move by themselves are normally taken apart into layers by
+   js/art.js. Where that has not happened and one is still an <img>, it repaints itself
+   on every frame. On a layer of its own that costs only its own few square inches;
+   without one, the browser repaints whatever it sits on as well, which on the console
+   is the whole plate. (will-change: opacity rather than transform, because a transform
+   hint also freezes the scale the layer is drawn at, and the stage is rescaled whenever
+   the window is.) */
+img.life,
+img.engine-card-art,
+img.key-plate-art,
+img.flourish {
+  will-change: opacity;
+}
+
+/* ---- dozing --------------------------------------------------------------------------------- */
+
+/* Nobody has touched the page for a few minutes (js/art.js): everything that moves
+   only to be looked at stops where it is, so that an abandoned tab is not drawing
+   frames. --ps is the play state of every drawing js/art.js has rebuilt; a custom
+   property, because that is what crosses into their shadow trees. */
+html.is-dozing .art { --ps: paused; }
+html.is-dozing .stage { --idle: paused; }
+html.is-dozing .frontispiece-cog,
+html.is-dozing .valve-glow,
+html.is-dozing .ignition-valve-glow,
+html.is-dozing .lever-arm {
+  animation-play-state: paused;
 }
 
 .manuscript-text .write-head {
@@ -141,11 +241,18 @@
   .turns,
   .governor-arms,
   .piston,
+  .gauge .gauge-needle,
+  .lever .lever-arm,
+  .frontispiece-cog,
   .manuscript-text .write-head,
   .stage[data-machine-state="jammed"] .flag-lamp,
-  .stage[data-machine-state="composing"] .valve-glow {
-    animation: none;
+  .stage .valve-glow,
+  .ignition-valve .ignition-valve-glow {
+    animation: none !important;
   }
+  /* Still, but not dark: the state has to show without the motion. */
+  .stage[data-machine-state="idle"] .valve-glow,
+  .stage[data-machine-state="concluded"] .valve-glow { opacity: 0.22; }
   .shutter,
   .lever-arm,
   .stop-knob,

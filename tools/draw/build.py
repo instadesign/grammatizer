@@ -40,9 +40,16 @@ def main(argv):
         for name, make in sorted(plates.PLATES.items()):
             if only and name not in only:
                 continue
-            size = write(os.path.join(OUT_PLATES, name + ".svg"), make().svg())
+            drawing = make()
+            size = write(os.path.join(OUT_PLATES, name + ".svg"), drawing.svg())
             total += size
             print("%-16s %6.1f KB" % (name, size / 1024.0))
+            # What moves on a plate is lifted out of it (Drawing.lift) into small
+            # files of its own, laid back over it by the rules in css/layout.css.
+            for layer in sorted(drawing.layers):
+                size = write(os.path.join(OUT_PARTS, "life-%s.svg" % layer), drawing.layer_svg(layer))
+                total += size
+                print("  life-%-9s %6.1f KB" % (layer, size / 1024.0))
     write(os.path.join(ROOT, "css", "layout.css"), layout.css())
     print("total %.1f KB" % (total / 1024.0))
 

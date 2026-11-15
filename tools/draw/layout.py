@@ -60,6 +60,26 @@ WHISTLE = dict(x=1352, y=10, scale=0.7)
 HORN = dict(x=1462, y=14, w=112, h=104)             # the ear-trumpet (sound)
 
 
+# ---- what moves on the plate ----------------------------------------------------------
+# Each of these is drawn in place by plates.console() and then lifted out of the plate
+# into a small file of its own (assets/svg/parts/life-<name>.svg), because a drawing the
+# size of the plate cannot animate inside itself without being repainted whole on every
+# frame. The box is where that file is laid back over the plate, and has to hold the
+# thing wherever its motion takes it: the cat's box has headroom for the z's.
+LIFE = {
+    "cat": dict(x=228, y=-10, w=124, h=98),          # asleep on the books
+    "kettle": dict(x=330, y=-26, w=114, h=146),      # with room above the lid for steam
+    "lamp-a": dict(x=290, y=-150, w=80, h=104),      # the two hanging lamps (off the top
+    "lamp-b": dict(x=1230, y=-150, w=80, h=104),     # of the safe area: tall windows only)
+    "mouse": dict(x=-52, y=872, w=180, h=28),        # and the stretch of floor it runs on
+    "fire": dict(x=-166, y=790, w=52, h=38),         # the boiler's firebox
+    "needle": dict(x=-184, y=418, w=40, h=40),       # its pressure gauge
+    "weight": dict(x=434, y=602, w=50, h=154),       # the weight on its string
+    "drip": dict(x=1646, y=868, w=20, h=40),         # the oil can's
+    "peeper": dict(x=788, y=108, w=24, h=24),        # whoever is behind the spy-hole
+}
+
+
 def css():
     """The same numbers as CSS custom properties."""
     def px(v):
@@ -105,4 +125,9 @@ def css():
              "   change layout.py and re-run the build, so the drawing moves with it. */", "", ":root {"]
     lines += ["  --%s: %s;" % row for row in rows]
     lines += ["}", ""]
+    lines.append("/* Where each lifted-out moving part is laid back over the plate (LIFE in layout.py). */")
+    for name in sorted(LIFE):
+        b = LIFE[name]
+        lines.append(".life--%s { left: %dpx; top: %dpx; width: %dpx; height: %dpx; }" % (name, b["x"], b["y"], b["w"], b["h"]))
+    lines.append("")
     return "\n".join(lines)

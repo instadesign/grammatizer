@@ -135,6 +135,20 @@
 
       <!-- ---- moving parts with no controls on them ---------------------------- -->
       <div class="scenery" aria-hidden="true">
+        <!-- The room's small lives. Each is a piece of the plate lifted out into its own
+             file so that it can move. The file carries its own motion; js/art.js then
+             rebuilds it here as layers, which is the cheap way to play it. Positions
+             are written into css/layout.css by the drawing build. -->
+        <img class="sprite life life--lamp-a" src="assets/svg/parts/life-lamp-a.svg" alt="">
+        <img class="sprite life life--lamp-b" src="assets/svg/parts/life-lamp-b.svg" alt="">
+        <img class="sprite life life--fire" src="assets/svg/parts/life-fire.svg" alt="">
+        <img class="sprite life life--needle" src="assets/svg/parts/life-needle.svg" alt="">
+        <img class="sprite life life--weight" src="assets/svg/parts/life-weight.svg" alt="">
+        <img class="sprite life life--drip" src="assets/svg/parts/life-drip.svg" alt="">
+        <img class="sprite life life--mouse" src="assets/svg/parts/life-mouse.svg" alt="">
+        <img class="sprite life life--kettle" src="assets/svg/parts/life-kettle.svg" alt="">
+        <img class="sprite life life--cat" src="assets/svg/parts/life-cat.svg" alt="">
+        <img class="sprite life life--peeper" src="assets/svg/parts/life-peeper.svg" alt="">
         <img class="sprite turns flywheel" src="assets/svg/parts/flywheel.svg" alt="">
         <img class="sprite turns cog-big" src="assets/svg/parts/cog-a.svg" alt="">
         <img class="sprite turns turns--back cog-mid" src="assets/svg/parts/cog-b.svg" alt="">
@@ -324,7 +338,7 @@
         <button type="button" class="crank" id="btn-scramble" aria-label="Scramble the pre-selectors" title="Scramble the pre-selectors">
           <img src="assets/svg/parts/crank.svg" alt="">
         </button>
-        <p class="makers-plate">after <a href="https://en.wikipedia.org/wiki/The_Great_Automatic_Grammatizator" target="_blank" rel="noopener noreferrer">Roald Dahl</a>, 1953<br><span id="build-tag-console">Mark IV, v0.21</span></p>
+        <p class="makers-plate">after <a href="https://en.wikipedia.org/wiki/The_Great_Automatic_Grammatizator" target="_blank" rel="noopener noreferrer">Roald Dahl</a>, 1953<br><span id="build-tag-console">Mark IV, v0.22</span></p>
       </aside>
 
       <!-- ---- centre: status flag, word counter, the paper, its actions ---------------- -->
@@ -461,7 +475,7 @@
     <a href="https://en.wikipedia.org/wiki/The_Great_Automatic_Grammatizator" target="_blank" rel="noopener noreferrer">About the story</a>,
     <a href="https://www.penguin.co.uk/books/192016/the-great-automatic-grammatizator-a-roald-dahl-short-story-by-dahl-roald/9781405911153" target="_blank" rel="noopener noreferrer">read it</a>.
   </p>
-  <p class="build-tag" id="build-tag">Beta v0.21</p>
+  <p class="build-tag" id="build-tag">Beta v0.22</p>
 </footer>
 <div class="grain grain--page" aria-hidden="true"></div>
 
@@ -470,6 +484,7 @@
 <script src="js/composer.js"></script>
 <script src="js/sound.js"></script>
 <script src="js/stage.js"></script>
+<script src="js/art.js"></script>
 <script src="js/machine.js"></script>
 <script src="js/screens/engine-connect.js"></script>
 <script src="js/screens/ignition-onboarding.js"></script>

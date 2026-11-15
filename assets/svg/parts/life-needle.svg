@@ -1,0 +1,9 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="-184 418 40 40" width="40" height="40">
+<style>@keyframes nd-tremble{0%,100%{transform:none}11%{transform:rotate(5deg)}23%{transform:rotate(-3deg)}37%{transform:rotate(7deg)}52%{transform:rotate(1deg)}68%{transform:rotate(-5deg)}83%{transform:rotate(3deg)}}.tremble{animation:nd-tremble 3.1s ease-in-out infinite;animation-delay:calc(0s - var(--t,0s));animation-play-state:var(--ps,running)}@media (prefers-reduced-motion:reduce){*{animation:none!important}}</style>
+<g fill="#2a211b">
+<g data-p="-164.1 437.6" transform="translate(-164.1 437.6)"><g class="tremble"><g transform="translate(164.1 -437.6)">
+<path d="M-167.1 439.5Q-167 439.7 -163.6 437.1Q-160.2 434.5 -157.1 431.6Q-154 428.7 -154.1 428.5Q-154.3 428.3 -157.7 431Q-161 433.6 -164.2 436.5Q-167.3 439.3 -167.1 439.5Z" fill="#a63d40"/>
+</g></g></g>
+<path d="M-162.7 436.9Q-162.4 437.5 -162.7 438.1Q-163 438.8 -163.7 438.9Q-164.4 439.1 -164.9 438.6Q-165.5 438.2 -165.5 437.5Q-165.5 436.8 -164.9 436.4Q-164.4 435.9 -163.7 436.1Q-163 436.3 -162.7 436.9Z"/>
+</g>
+</svg>

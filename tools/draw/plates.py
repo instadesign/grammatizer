@@ -3,6 +3,11 @@
 The console plate is everything on the console that never moves: the workshop, the
 cabinets, the pipework. Anything that moves, lights or repeats is a separate part
 (parts.py) laid over it by css/console.css, using the positions in layout.py.
+
+The room's small lives (the cat, the kettle, the lamps, the mouse, the fire) are drawn
+here, in place and in order, and then lifted out of the plate into files of their own
+that carry their own motion: see Drawing.lift in ink.py and LIFE in layout.py. A motif
+below that animates (cat, kettle, lamp) must therefore always be drawn inside a lift.
 """
 
 import math
@@ -17,6 +22,11 @@ from .ink import (
 
 COPPER = "#b5683c"
 GINGER = "#c9843a"
+
+
+def box(name):
+    b = L.LIFE[name]
+    return (b["x"], b["y"], b["w"], b["h"])
 
 
 # ---- small shared motifs -------------------------------------------------------------
@@ -111,8 +121,9 @@ def kettle(d, x, y):
     d.wash(burner, BRASS, op=0.66, amp=0.5, step=6)
     d.edges(burner, w=1.7, over=1.5)
     flame = spline([(x - 6, y - 14), (x - 7, y - 21), (x - 1, y - 28), (x + 1, y - 22), (x + 6, y - 25), (x + 6, y - 14)], closed=True)
-    d.wash(flame, EMBER, op=0.8, amp=0.4, step=5, glaze=False)
-    d.pen(flame + flame[:2], w=1.0, amp=0.2)
+    with d.part("flame", pivot=(x, y - 14)):
+        d.wash(flame, EMBER, op=0.8, amp=0.4, step=5, glaze=False)
+        d.pen(flame + flame[:2], w=1.0, amp=0.2)
     # trivet legs
     for sx in (-30, 30):
         d.pen([(x + sx, y), (x + sx * 0.86, y - 30)], w=1.6, amp=0.4)
@@ -129,11 +140,12 @@ def kettle(d, x, y):
     d.pen(body, w=2.0, amp=0.5)
     d.glint([(x - 27, by - 30), (x - 30, by - 18), (x - 28, by - 8)], w=2.4, opacity=0.6)
     # lid and knob
-    lid = [(x - 14, by - 47), (x + 14, by - 47), (x + 10, by - 55), (x - 10, by - 55)]
-    d.ko(lid)
-    d.wash(lid, COPPER, op=0.72, amp=0.4, step=6)
-    d.edges(lid, w=1.6, over=1)
-    d.disc(x, by - 60, 4.4, fill=UMBER, op=0.7, lw=1.3, shade=False)
+    with d.part("lid", pivot=(x, by - 47)):
+        lid = [(x - 14, by - 47), (x + 14, by - 47), (x + 10, by - 55), (x - 10, by - 55)]
+        d.ko(lid)
+        d.wash(lid, COPPER, op=0.72, amp=0.4, step=6)
+        d.edges(lid, w=1.6, over=1)
+        d.disc(x, by - 60, 4.4, fill=UMBER, op=0.7, lw=1.3, shade=False)
     # handle
     d.pen(spline([(x - 24, by - 43), (x - 22, by - 70), (x, by - 82), (x + 22, by - 70), (x + 24, by - 43)]), w=2.8, amp=0.6, taper=0.7)
     # spout, to the right, with a rubber tube off to the pipework
@@ -142,6 +154,15 @@ def kettle(d, x, y):
     d.wash(spout, COPPER, op=0.7, amp=0.5, step=6)
     d.pen([(x + 32, by - 14), (x + 52, by - 30), (x + 58, by - 46)], w=1.7, amp=0.3)
     d.pen([(x + 30, by - 26), (x + 44, by - 34), (x + 50, by - 48)], w=1.7, amp=0.3)
+    # It is just coming to the boil: the flame never keeps still, and every few
+    # seconds the lid lifts and rattles.
+    d.keyframes("kt-flame", "0%,100%{transform:none}22%{transform:scale(.9,1.16) skewX(-5deg)}"
+                            "47%{transform:scale(1.06,.9)}71%{transform:scale(.94,1.1) skewX(4deg)}")
+    d.keyframes("kt-lid", "0%,58%{transform:none}62%{transform:translateY(-1.8px) rotate(-3deg)}66%{transform:none}"
+                          "70%{transform:translateY(-1.3px) rotate(2.5deg)}74%{transform:none}"
+                          "78%{transform:translateY(-1.7px) rotate(-2deg)}82%,100%{transform:none}")
+    d.animate(".flame", "kt-flame .83s ease-in-out infinite")
+    d.animate(".lid", "kt-lid 4.3s ease-in-out infinite")
     return (x + 54, by - 47)
 
 
@@ -150,13 +171,14 @@ def cat(d, x, y):
     body = spline([(x - 44, y), (x - 50, y - 16), (x - 36, y - 34), (x - 8, y - 42), (x + 22, y - 38),
                    (x + 42, y - 24), (x + 48, y - 8), (x + 40, y)], closed=False)
     body = body + [(x - 44, y)]
-    d.ko(body)
-    d.wash(body, GINGER, op=0.62, amp=1.2)
-    d.wash([(x + 8, y - 40), (x + 42, y - 24), (x + 48, y - 8), (x + 40, y), (x, y), (x + 20, y - 18)], PAYNE, op=0.16, edge=0, amp=0.8)
-    d.pen(body[:-1], w=1.9, amp=0.7)
-    # stripes over the back
-    for i, sx in enumerate((-18, -4, 10, 24)):
-        d.pen([(x + sx, y - 39 + abs(sx) * 0.12), (x + sx + 5, y - 29 + abs(sx) * 0.1), (x + sx + 4, y - 22)], w=2.0, amp=0.5, color=UMBER, opacity=0.5)
+    with d.part("breath", pivot=(x, y)):
+        d.ko(body)
+        d.wash(body, GINGER, op=0.62, amp=1.2)
+        d.wash([(x + 8, y - 40), (x + 42, y - 24), (x + 48, y - 8), (x + 40, y), (x, y), (x + 20, y - 18)], PAYNE, op=0.16, edge=0, amp=0.8)
+        d.pen(body[:-1], w=1.9, amp=0.7)
+        # stripes over the back
+        for i, sx in enumerate((-18, -4, 10, 24)):
+            d.pen([(x + sx, y - 39 + abs(sx) * 0.12), (x + sx + 5, y - 29 + abs(sx) * 0.1), (x + sx + 4, y - 22)], w=2.0, amp=0.5, color=UMBER, opacity=0.5)
     # head, tucked down at the left
     hx, hy = x - 34, y - 14
     head = ellipse_pts(hx, hy, 17, 14)
@@ -164,10 +186,11 @@ def cat(d, x, y):
     d.wash(head, GINGER, op=0.64, amp=0.6, step=8)
     for sx in (-1, 1):
         ear = [(hx + sx * 5, hy - 11), (hx + sx * 13, hy - 23), (hx + sx * 16, hy - 6)]
-        d.ko(ear)
-        d.wash(ear, GINGER, op=0.64, amp=0.3, step=5, glaze=False)
-        d.pen([ear[0], ear[1]], w=1.5, amp=0.3)
-        d.pen([ear[1], ear[2]], w=1.5, amp=0.3)
+        with d.part("ear-%s" % ("l" if sx < 0 else "r"), pivot=(hx + sx * 10, hy - 9)):
+            d.ko(ear)
+            d.wash(ear, GINGER, op=0.64, amp=0.3, step=5, glaze=False)
+            d.pen([ear[0], ear[1]], w=1.5, amp=0.3)
+            d.pen([ear[1], ear[2]], w=1.5, amp=0.3)
     d.circle(hx, hy, 15.5, w=1.7, squash=0.9)
     d.arc(hx - 6, hy - 1, 3.6, 2.6, 20, 160, w=1.3)     # closed eyes
     d.arc(hx + 6, hy - 1, 3.6, 2.6, 20, 160, w=1.3)
@@ -178,10 +201,21 @@ def cat(d, x, y):
     # tail, wrapped round the front
     tail = spline([(x + 44, y - 10), (x + 36, y + 2), (x + 6, y + 5), (x - 18, y + 3), (x - 24, y - 3)])
     tail_fill = tail + [(x - 20, y - 9), (x + 4, y - 4), (x + 30, y - 7)]
-    d.ko(tail_fill)
-    d.wash(tail_fill, GINGER, op=0.62, amp=0.5, step=8, glaze=False)
-    d.pen(tail, w=1.8, amp=0.5)
-    d.pen([(x - 20, y - 9), (x + 4, y - 4), (x + 30, y - 7)], w=1.3, amp=0.4)
+    with d.part("tail", pivot=(x + 44, y - 10)):
+        d.ko(tail_fill)
+        d.wash(tail_fill, GINGER, op=0.62, amp=0.5, step=8, glaze=False)
+        d.pen(tail, w=1.8, amp=0.5)
+        d.pen([(x - 20, y - 9), (x + 4, y - 4), (x + 30, y - 7)], w=1.3, amp=0.4)
+    # Asleep, and staying asleep: it breathes, slowly; an ear turns towards some noise
+    # the machine has made; the end of the tail lifts and settles.
+    d.keyframes("ct-breath", "0%,100%{transform:none}45%{transform:scale(1.008,1.045)}")
+    d.keyframes("ct-ear", "0%,60%{transform:none}62%{transform:rotate(16deg)}64.5%{transform:rotate(3deg)}"
+                          "67%{transform:rotate(14deg)}71%,100%{transform:none}")
+    d.keyframes("ct-tail", "0%,24%{transform:none}28%{transform:rotate(2.6deg)}33%{transform:rotate(.5deg)}"
+                           "37%{transform:rotate(2.1deg)}45%,100%{transform:none}")
+    d.animate(".breath", "ct-breath 5.2s ease-in-out infinite")
+    d.animate(".ear-r", "ct-ear 11s ease-out infinite")
+    d.animate(".tail", "ct-tail 13s ease-in-out infinite")
 
 
 def books(d, x, y):
@@ -225,13 +259,20 @@ def boiler(d, x, y, w, h):
     d.ko(door)
     d.wash(door, PAYNE, op=0.6, amp=0.6)
     d.outline(door, w=2.0)
-    grate = round_rect_pts(fx - 22, fy - 12, 44, 30, 5)
-    d.ko(grate)
-    d.wash(grate, EMBER, op=0.85, amp=0.4, step=8)
-    d.wash(scale_pts(grate, 0.6), "#f7c86a", op=0.7, amp=0.3, step=6, edge=0, glaze=False)
-    d.outline(grate, w=1.4)
-    for gx in (-12, -4, 4, 12):
-        d.pen([(fx + gx, fy - 11), (fx + gx, fy + 17)], w=1.5, amp=0.2)
+    with d.lift("fire", box("fire")):
+        grate = round_rect_pts(fx - 22, fy - 12, 44, 30, 5)
+        d.ko(grate)
+        d.wash(grate, EMBER, op=0.85, amp=0.4, step=8)
+        with d.part("heart", pivot=(fx, fy + 16)):
+            d.wash(scale_pts(grate, 0.6), "#f7c86a", op=0.7, amp=0.3, step=6, edge=0, glaze=False)
+        d.outline(grate, w=1.4)
+        for gx in (-12, -4, 4, 12):
+            d.pen([(fx + gx, fy - 11), (fx + gx, fy + 17)], w=1.5, amp=0.2)
+        # the bright heart of the fire, seen through the bars, never the same twice
+        d.keyframes("fr-heart", "0%,100%{opacity:1;transform:none}18%{opacity:.55;transform:scale(.9,.8)}"
+                                "39%{opacity:.95;transform:scale(1.12,1.2)}61%{opacity:.6;transform:scale(.95,.86)}"
+                                "80%{opacity:1;transform:scale(1.06,1.14)}")
+        d.animate(".heart", "fr-heart 1.9s ease-in-out infinite")
     d.disc(fx + 27, fy + 3, 3.4, fill=BRASS, op=0.8, lw=1.1, shade=False)
     # pressure gauge on the front
     gx, gy = x + w * 0.36, y + h * 0.2
@@ -242,8 +283,15 @@ def boiler(d, x, y, w, h):
     for i in range(9):
         a = math.radians(150 + i * 30)
         d.pen([(gx + 12.5 * math.cos(a), gy + 12.5 * math.sin(a)), (gx + 15.5 * math.cos(a), gy + 15.5 * math.sin(a))], w=0.8, amp=0.05)
-    d.pen([(gx - 3, gy + 2), (gx + 10, gy - 9)], w=1.4, amp=0.1, color=MADDER)
-    d.dot(gx, gy, 1.6)
+    with d.lift("needle", box("needle")):
+        with d.part("tremble", pivot=(gx, gy)):
+            d.pen([(gx - 3, gy + 2), (gx + 10, gy - 9)], w=1.4, amp=0.1, color=MADDER)
+        d.dot(gx, gy, 1.6)
+        # pressure that will not quite settle
+        d.keyframes("nd-tremble", "0%,100%{transform:none}11%{transform:rotate(5deg)}23%{transform:rotate(-3deg)}"
+                                  "37%{transform:rotate(7deg)}52%{transform:rotate(1deg)}68%{transform:rotate(-5deg)}"
+                                  "83%{transform:rotate(3deg)}")
+        d.animate(".tremble", "nd-tremble 3.1s ease-in-out infinite")
     # water sight-glass down the side
     sx = x + w * 0.74
     tube = rect_pts(sx - 4, y + h * 0.42, 8, h * 0.22)
@@ -257,17 +305,24 @@ def boiler(d, x, y, w, h):
         d.edges(cap, w=1.1, over=0.6)
 
 
-def lamp(d, x, y, drop=70):
-    """A hanging oil lamp on its chain; (x, y) is the ceiling hook."""
-    d.pen([(x, y), (x, y + drop)], w=1.0, amp=0.5)
-    shade = [(x - 30, y + drop + 26), (x - 9, y + drop), (x + 9, y + drop), (x + 30, y + drop + 26)]
-    d.ko(shade)
-    d.wash(shade, VERDIGRIS, op=0.6, amp=0.6, step=8)
-    d.edges(shade, w=1.8, over=2)
-    glass = spline([(x - 9, y + drop + 26), (x - 12, y + drop + 40), (x, y + drop + 50), (x + 12, y + drop + 40), (x + 9, y + drop + 26)])
-    d.ko(glass, PAPER_LIGHT)
-    d.wash(glass, EMBER, op=0.5, amp=0.3, step=6, glaze=False)
-    d.pen(glass, w=1.4, amp=0.3)
+def lamp(d, x, y, drop=70, period=5.3):
+    """A hanging oil lamp on its chain; (x, y) is the ceiling hook. It swings a
+    little, as anything on a chain does in a room with an engine in it."""
+    with d.part("swing", pivot=(x, y)):
+        d.pen([(x, y), (x, y + drop)], w=1.0, amp=0.5)
+        shade = [(x - 30, y + drop + 26), (x - 9, y + drop), (x + 9, y + drop), (x + 30, y + drop + 26)]
+        d.ko(shade)
+        d.wash(shade, VERDIGRIS, op=0.6, amp=0.6, step=8)
+        d.edges(shade, w=1.8, over=2)
+        glass = spline([(x - 9, y + drop + 26), (x - 12, y + drop + 40), (x, y + drop + 50), (x + 12, y + drop + 40), (x + 9, y + drop + 26)])
+        d.ko(glass, PAPER_LIGHT)
+        with d.part("glow"):
+            d.wash(glass, EMBER, op=0.5, amp=0.3, step=6, glaze=False)
+        d.pen(glass, w=1.4, amp=0.3)
+    d.keyframes("lp-swing", "0%{transform:rotate(-1.7deg)}100%{transform:rotate(1.7deg)}")
+    d.keyframes("lp-glow", "0%,100%{opacity:1}30%{opacity:.62}55%{opacity:.9}80%{opacity:.7}")
+    d.animate(".swing", "lp-swing %ss ease-in-out infinite alternate" % period, delay=-period / 2.0)
+    d.animate(".glow", "lp-glow %ss ease-in-out infinite" % round(period * 0.41, 2))
 
 
 def spanner(d, x, y, angle):
@@ -292,7 +347,14 @@ def oil_can(d, x, y):
     d.edges(body, w=1.8, over=1.5)
     d.pen([(x + 2, y - 26), (x + 8, y - 44), (x + 40, y - 58)], w=1.8, amp=0.3)
     d.pen(spline([(x - 11, y - 20), (x - 28, y - 20), (x - 27, y - 4), (x - 15, y - 3)]), w=1.8, amp=0.3)
-    d.dot(x + 44, y - 52, 1.6)
+    with d.lift("drip", box("drip")):
+        with d.part("drop", pivot=(x + 44, y - 52)):
+            d.dot(x + 44, y - 52, 1.6)
+        # one drop hangs on the spout, lets go, and another gathers
+        d.keyframes("dr-drop", "0%{opacity:0;transform:scale(.3)}22%,70%{opacity:1;transform:none}"
+                               "84%{opacity:1;transform:translateY(27px) scale(.9,1.3)}"
+                               "88%,100%{opacity:0;transform:translateY(30px)}")
+        d.animate(".drop", "dr-drop 7.4s ease-in infinite")
 
 
 # ---- the console plate ---------------------------------------------------------------
@@ -325,8 +387,10 @@ def console():
     # drops into the two gaps beside the paper
     d.pipe([(L.GEAR_COLUMN["x"], -74), (L.GEAR_COLUMN["x"], 176)], r=6.5, fill=VERDIGRIS, flanges=(0.5,))
     d.pipe([(L.VALVES["x"], -74), (L.VALVES["x"], 150)], r=6.5, fill=VERDIGRIS, flanges=(0.42,))
-    lamp(d, 330, Y0, drop=44)
-    lamp(d, 1270, Y0, drop=44)
+    with d.lift("lamp-a", box("lamp-a")):
+        lamp(d, 330, Y0, drop=44, period=5.3)
+    with d.lift("lamp-b", box("lamp-b")):
+        lamp(d, 1270, Y0, drop=44, period=6.1)
 
     # -- left of everything: the boiler -------------------------------------------------
     boiler(d, -226, 330, 172, FY - 330)
@@ -375,14 +439,31 @@ def console():
     d.ko(hole)
     d.wash(hole, INK, op=0.82, amp=0.3, step=6, glaze=False)
     d.pen(hole, w=1.4, amp=0.3)
-    mouse = spline([(10, FY + 24), (14, FY + 13), (28, FY + 10), (40, FY + 15), (44, FY + 24)])
-    d.ko(mouse + [(10, FY + 24)])
-    d.wash(mouse + [(10, FY + 24)], PAYNE, op=0.5, amp=0.3, step=6, glaze=False)
-    d.pen(mouse, w=1.4, amp=0.3)
-    d.pen([(8, FY + 24), (48, FY + 24)], w=1.0, amp=0.2)
-    d.circle(15, FY + 12, 3.6, w=1.0)
-    d.dot(13, FY + 19, 0.9)
-    d.pen(spline([(44, FY + 22), (58, FY + 26), (66, FY + 18), (76, FY + 22)]), w=1.0, amp=0.3)
+    with d.lift("mouse", box("mouse")):
+        with d.part("mouse", pivot=(27, FY + 18)):
+            mouse = spline([(10, FY + 24), (14, FY + 13), (28, FY + 10), (40, FY + 15), (44, FY + 24)])
+            d.ko(mouse + [(10, FY + 24)])
+            d.wash(mouse + [(10, FY + 24)], PAYNE, op=0.5, amp=0.3, step=6, glaze=False)
+            d.pen(mouse, w=1.4, amp=0.3)
+            d.pen([(8, FY + 24), (48, FY + 24)], w=1.0, amp=0.2)
+            with d.part("mouse-ear", pivot=(16, FY + 15)):
+                d.circle(15, FY + 12, 3.6, w=1.0)
+            d.dot(13, FY + 19, 0.9)
+            with d.part("mouse-tail", pivot=(44, FY + 22)):
+                d.pen(spline([(44, FY + 22), (58, FY + 26), (66, FY + 18), (76, FY + 22)]), w=1.0, amp=0.3)
+        # It sits where it is drawn, by its hole, for most of nineteen seconds. Then:
+        # a look into the hole, a turn, a run out across the boards, a pause in the
+        # open, a turn, and home again. (A mouse faces the way it runs, hence the
+        # flips. They are quick enough to read as turning round.)
+        d.keyframes("ms-run", "0%,50%{transform:none}53%,60%{transform:translateX(-20px)}"
+                              "61.5%{transform:translateX(-20px) scaleX(-1)}67%,78%{transform:translateX(46px) scaleX(-1)}"
+                              "79.5%{transform:translateX(46px)}86%,100%{transform:none}")
+        d.keyframes("ms-ear", "0%,12%{transform:none}14%{transform:rotate(-18deg)}17%,70%{transform:none}"
+                              "72%{transform:rotate(-18deg)}75%,100%{transform:none}")
+        d.keyframes("ms-tail", "0%{transform:rotate(-7deg)}100%{transform:rotate(9deg)}")
+        d.animate(".mouse", "ms-run 19s cubic-bezier(.5,0,.3,1) infinite", delay=-6)
+        d.animate(".mouse-ear", "ms-ear 19s ease-out infinite", delay=-6)
+        d.animate(".mouse-tail", "ms-tail 1.7s ease-in-out infinite alternate")
 
     # ====================================================================================
     # LEFT CABINET: the pre-selectors
@@ -455,9 +536,11 @@ def console():
 
     # on top: a stack of books, a kettle on its burner, and the cat
     books(d, x + 222, y - 12)
-    spout = kettle(d, x + 352, y - 12)
+    with d.lift("kettle", box("kettle")):
+        spout = kettle(d, x + 352, y - 12)
     d.pen(spline([spout, (spout[0] + 16, spout[1] - 22), (spout[0] + 34, spout[1] - 4), (L.GEAR_COLUMN["x"] - 4, spout[1] + 26), (L.GEAR_COLUMN["x"] - 2, 60)]), w=3.0, amp=0.8, taper=0.8, color=UMBER, opacity=0.85)
-    cat(d, x + 268, y - 52)
+    with d.lift("cat", box("cat")):
+        cat(d, x + 268, y - 52)
 
     # ====================================================================================
     # RIGHT CABINET: organ stops, and below them the sight-glass and the lever
@@ -668,11 +751,15 @@ def console():
     d.disc(g["x"], 600, 15, fill=BRASS, op=0.68, lw=1.8)
     d.disc(g["x"], 600, 4, fill=PAYNE, op=0.7, lw=1.1, shade=False)
     # string, with a weight on it, because there is always string
-    d.pen(spline([(g["x"] - 12, 610), (g["x"] - 18, 660), (g["x"] - 10, 716)]), w=0.9, amp=0.8)
-    weight = [(g["x"] - 20, 716), (g["x"], 716), (g["x"] + 3, 748), (g["x"] - 23, 748)]
-    d.ko(weight)
-    d.wash(weight, PAYNE, op=0.62, amp=0.4, step=6)
-    d.edges(weight, w=1.6, over=1)
+    with d.lift("weight", box("weight")):
+        with d.part("plumb", pivot=(g["x"] - 12, 610)):
+            d.pen(spline([(g["x"] - 12, 610), (g["x"] - 18, 660), (g["x"] - 10, 716)]), w=0.9, amp=0.8)
+            weight = [(g["x"] - 20, 716), (g["x"], 716), (g["x"] + 3, 748), (g["x"] - 23, 748)]
+            d.ko(weight)
+            d.wash(weight, PAYNE, op=0.62, amp=0.4, step=6)
+            d.edges(weight, w=1.6, over=1)
+        d.keyframes("wt-plumb", "0%{transform:rotate(-1.5deg)}100%{transform:rotate(1.5deg)}")
+        d.animate(".plumb", "wt-plumb 2.3s ease-in-out infinite alternate")
 
     v = L.VALVES
     rack = rect_pts(v["x"] - 22, v["y"] - 46, 44, v["step"] * (v["n"] - 1) + 96)
@@ -690,6 +777,57 @@ def console():
     for k, wx in enumerate((-10, 0, 10)):
         top = v["y"] + (v["n"] - 1) * v["step"] + 50
         d.pen(spline([(v["x"] + wx, top), (v["x"] + wx * 2.2, top + 60), (v["x"] + wx * 0.6, top + 130), (v["x"] + wx * 1.6, top + 190)]), w=1.1, amp=0.8, color=(MADDER, INK, VERDIGRIS)[k], opacity=0.85)
+
+    # ====================================================================================
+    # THINGS THAT ONLY EXIST BECAUSE THEY MOVE
+    # Drawn last, and only here: every stroke takes numbers from the drawing's one random
+    # stream, so anything new drawn earlier would re-roll the wobble of everything after
+    # it. Each goes into a layer lifted further up.
+    # ====================================================================================
+    x, y = L.LEFT["x"], L.LEFT["y"]
+    with d.lift("cat"):
+        # what a sleeping cat says, three sizes, drifting off the top of its head
+        hx, hy = x + 268 - 34, y - 52 - 14
+        for k, (zx, zy, size) in enumerate(((hx + 2, hy - 30, 4.0), (hx + 10, hy - 40, 5.4), (hx + 20, hy - 52, 7.0))):
+            h = size / 2.0
+            with d.part("zed zed-%d" % k, pivot=(zx, zy)):
+                # three strokes, as a hand writes one (a single stroke would round the corners off)
+                for a, b in (((-h, -h), (h, -h)), ((h, -h), (-h, h)), ((-h, h), (h, h))):
+                    d.pen([(zx + a[0], zy + a[1]), (zx + b[0], zy + b[1])], w=1.0 + 0.15 * k, amp=0.1, step=1.5, taper=0.75, over=0.4, opacity=0.8)
+        d.keyframes("ct-zed", "0%{opacity:0;transform:translate(-3px,4px) scale(.6)}22%,62%{opacity:1;transform:none}"
+                              "100%{opacity:0;transform:translate(3px,-5px) scale(1.15)}")
+        for k in range(3):
+            d.animate(".zed-%d" % k, "ct-zed 5.2s ease-in-out infinite", delay=0.9 * k)
+    with d.lift("kettle"):
+        # steam from under the lid, let go each time it rattles
+        kx, ky = x + 352, y - 12 - 30 - 62
+        for k, sx in enumerate((-9, 2, 11)):
+            with d.part("steam steam-%d" % k, pivot=(kx + sx, ky - 6)):
+                d.pen(spline([(kx + sx, ky), (kx + sx - 3, ky - 6), (kx + sx + 3, ky - 11), (kx + sx - 1, ky - 17)]), w=1.1, amp=0.3, opacity=0.6)
+        d.style(".steam", "opacity:0")
+        d.keyframes("kt-steam", "0%,57%{opacity:0;transform:translateY(7px) scale(.6)}66%{opacity:1}"
+                                "86%,100%{opacity:0;transform:translateY(-9px) scale(1.2)}")
+        for k in range(3):
+            d.animate(".steam-%d" % k, "kt-steam 4.3s ease-out infinite", delay=0.17 * k, rest="opacity:0")
+    with d.lift("peeper", box("peeper")):
+        # Somebody is in there. Once in a long while an eye comes to the spy-hole, looks
+        # left, looks right, blinks, and goes away again. It rests invisible.
+        ex, ey = 800, L.HEAD["y"] + 38
+        with d.part("peeper"):
+            lens = circle_pts(ex, ey, 7.4, 10)
+            d.ko(lens, PAPER_LIGHT)
+            with d.part("lids", pivot=(ex, ey)):
+                with d.part("pupil"):
+                    d.disc(ex, ey, 3.4, fill=VERDIGRIS, op=0.8, lw=1.0, ko=False, shade=False)
+                    d.dot(ex, ey, 1.5)
+            d.circle(ex, ey, 7.6, w=1.3)
+        d.style(".peeper", "opacity:0")
+        d.keyframes("pp-come", "0%,70%{opacity:0}72%,95%{opacity:1}97%,100%{opacity:0}")
+        d.keyframes("pp-look", "0%,74%{transform:none}77%,81%{transform:translateX(-3px)}84%,88%{transform:translateX(3px)}91%,100%{transform:none}")
+        d.keyframes("pp-blink", "0%,92%{transform:none}93.2%{transform:scaleY(.08)}94.4%,100%{transform:none}")
+        d.animate(".peeper", "pp-come 41s linear infinite", delay=-15, rest="opacity:0")
+        d.animate(".pupil", "pp-look 41s ease-in-out infinite", delay=-15)
+        d.animate(".lids", "pp-blink 41s linear infinite", delay=-15)
 
     d.group_close()
     return d

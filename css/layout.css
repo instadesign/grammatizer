@@ -128,3 +128,15 @@
   --gear-y-2: 284px;
   --gear-y-3: 332px;
 }
+
+/* Where each lifted-out moving part is laid back over the plate (LIFE in layout.py). */
+.life--cat { left: 228px; top: -10px; width: 124px; height: 98px; }
+.life--drip { left: 1646px; top: 868px; width: 20px; height: 40px; }
+.life--fire { left: -166px; top: 790px; width: 52px; height: 38px; }
+.life--kettle { left: 330px; top: -26px; width: 114px; height: 146px; }
+.life--lamp-a { left: 290px; top: -150px; width: 80px; height: 104px; }
+.life--lamp-b { left: 1230px; top: -150px; width: 80px; height: 104px; }
+.life--mouse { left: -52px; top: 872px; width: 180px; height: 28px; }
+.life--needle { left: -184px; top: 418px; width: 40px; height: 40px; }
+.life--peeper { left: 788px; top: 108px; width: 24px; height: 24px; }
+.life--weight { left: 434px; top: 602px; width: 50px; height: 154px; }

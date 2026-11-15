@@ -725,7 +725,8 @@ def valve():
 
 
 def engine_gemini():
-    """The standard engine: twins. Two upright cylinders working one beam."""
+    """The standard engine: twins. Two upright cylinders working one beam, which rocks,
+    each cylinder letting off a puff as its piston comes up."""
     d = Drawing(210, 128, seed=170)
     bed = [(14, 108), (196, 108), (202, 124), (8, 124)]
     d.ko(bed)
@@ -739,6 +740,12 @@ def engine_gemini():
     d.ko(col)
     d.wash(col, PAYNE, op=0.48, amp=0.4, step=10)
     d.edges(col, w=1.7, over=1.5)
+    # piston rods, before the cylinders so that each cylinder hides the length of rod
+    # inside it: the rod can then rise and fall without ever coming out of the top
+    with d.part("rod-l"):
+        d.pen([(48, 40), (53, 76)], w=2.2, amp=0.2, taper=0.8)
+    with d.part("rod-r"):
+        d.pen([(160, 28), (156.6, 76)], w=2.2, amp=0.2, taper=0.8)
     # the twins
     for cx in (52, 158):
         cyl = rect_pts(cx - 20, 62, 40, 46)
@@ -756,24 +763,41 @@ def engine_gemini():
             d.wash(band, BRASS, op=0.7, amp=0.2, step=8, glaze=False)
             d.edges(band, w=1.2, over=0.8)
         d.glint([(cx - 14, 66), (cx - 14, 100)], w=1.8, opacity=0.5)
-    # piston rods up to the rocking beam, which is caught mid-stroke
-    beam = rotate_pts([(24, 32), (186, 32), (186, 42), (24, 42)], -7, 105, 37)
-    d.pen([(52, 56), (48, 40)], w=2.2, amp=0.2, taper=0.8)
-    d.pen([(158, 56), (160, 28)], w=2.2, amp=0.2, taper=0.8)
-    d.ko(beam)
-    d.wash(beam, BRASS, op=0.68, amp=0.5)
-    d.edges(beam, w=1.9, over=1.5)
+    # the rocking beam, drawn caught mid-stroke (which is how it rests if nothing moves)
+    with d.part("beam", pivot=(105, 37)):
+        beam = rotate_pts([(24, 32), (186, 32), (186, 42), (24, 42)], -7, 105, 37)
+        d.ko(beam)
+        d.wash(beam, BRASS, op=0.68, amp=0.5)
+        d.edges(beam, w=1.9, over=1.5)
+        for bx, by in ((36, 45), (174, 29)):
+            d.disc(bx, by, 4, fill=BRASS, op=0.8, lw=1.2, shade=False)
     d.disc(105, 37, 7, fill=PAYNE, op=0.7, lw=1.5, shade=False)
-    for bx, by in ((36, 45), (174, 29)):
-        d.disc(bx, by, 4, fill=BRASS, op=0.8, lw=1.2, shade=False)
     # a puff from each, taking turns
-    d.pen(spline([(46, 18), (40, 10), (48, 4)]), w=1.2, amp=0.4, opacity=0.7)
-    d.pen(spline([(166, 12), (174, 6), (168, 0)]), w=1.2, amp=0.4, opacity=0.7)
+    with d.part("puff-l", pivot=(45, 14)):
+        d.pen(spline([(46, 18), (40, 10), (48, 4)]), w=1.2, amp=0.4, opacity=0.7)
+    with d.part("puff-r", pivot=(169, 8)):
+        d.pen(spline([(166, 12), (174, 6), (168, 0)]), w=1.2, amp=0.4, opacity=0.7)
+
+    # One stroke every 2.8s. The beam swings 14 degrees from where it is drawn and
+    # back; the rods follow the beam where they meet it (57 and 55 units out from the
+    # pivot, so about 14 units of travel each way).
+    T = "2.8s ease-in-out infinite"
+    d.keyframes("gm-beam", "0%,100%{transform:none}50%{transform:rotate(14deg)}")
+    d.keyframes("gm-rod-l", "0%,100%{transform:none}50%{transform:translateY(-13.8px)}")
+    d.keyframes("gm-rod-r", "0%,100%{transform:none}50%{transform:translateY(13.3px)}")
+    d.keyframes("gm-puff", "0%{opacity:0;transform:translateY(5px) scale(.5)}18%{opacity:1}"
+                           "46%{opacity:0;transform:translateY(-5px) scale(1.2)}100%{opacity:0;transform:translateY(-5px) scale(1.2)}")
+    d.animate(".beam", "gm-beam " + T)
+    d.animate(".rod-l", "gm-rod-l " + T)
+    d.animate(".rod-r", "gm-rod-r " + T)
+    d.animate(".puff-l", "gm-puff 2.8s ease-out infinite", delay=-2.8 + 1.0)   # as the left piston tops out
+    d.animate(".puff-r", "gm-puff 2.8s ease-out infinite", delay=-2.8 + 2.4)   # and then the right
     return d
 
 
 def engine_groq():
-    """The fast engine: a turbine, leaning into it, trailing speed-lines."""
+    """The fast engine: a turbine, leaning into it, trailing speed-lines. The fan in
+    its mouth spins, the governor it has outrun whirls, and the whole barrel hums."""
     d = Drawing(210, 128, seed=175)
     for sx in (60, 148):
         leg = [(sx - 10, 92), (sx + 10, 92), (sx + 18, 124), (sx - 18, 124)]
@@ -781,40 +805,62 @@ def engine_groq():
         d.wash(leg, PAYNE, op=0.5, amp=0.4, step=8)
         d.edges(leg, w=1.8, over=1.5)
     d.pen([(24, 124), (190, 124)], w=2.2, amp=0.5, over=3)
-    # barrel
-    barrel = [(46, 40), (150, 46), (150, 90), (46, 96)]
-    d.ko(barrel)
-    d.wash(barrel, MADDER, op=0.62, amp=0.9)
-    d.wash([(46, 76), (150, 74), (150, 90), (46, 96)], PAYNE, op=0.26, edge=0, amp=0.5, glaze=False)
-    d.hatch([(48, 80), (148, 77), (148, 89), (48, 94)], gap=3.4, w=0.6, trim=0.25)
-    d.edges(barrel, w=2.0, over=2)
-    for bx in (70, 98, 126):
-        d.pen([(bx, 42 + (bx - 46) * 0.058), (bx, 95 - (bx - 46) * 0.058)], w=1.3, amp=0.3)
-    d.glint([(54, 48), (140, 52)], w=2.0, opacity=0.45)
-    # intake: a flared mouth with the fan showing
-    mouth = ellipse_pts(42, 68, 13, 34, 20)
-    d.ko(mouth)
-    d.wash(mouth, BRASS, op=0.7, amp=0.5, step=8)
-    d.outline(mouth, w=2.0, overlap=5)
-    inner = ellipse_pts(42, 68, 8.5, 26, 16)
-    d.ko(inner)
-    d.wash(inner, INK, op=0.7, amp=0.3, step=6, glaze=False)
-    d.outline(inner, w=1.3, overlap=4)
-    for a in (20, 80, 140, 200, 260, 320):
-        ra = math.radians(a)
-        d.pen([(42, 68), (42 + 8 * math.cos(ra), 68 + 25 * math.sin(ra))], w=1.1, amp=0.1, color=PAPER_LIGHT, opacity=0.9)
-    # exhaust cone and what comes out of it
-    cone = [(150, 50), (176, 60), (176, 76), (150, 86)]
-    d.ko(cone)
-    d.wash(cone, BRASS, op=0.7, amp=0.4, step=8)
-    d.edges(cone, w=1.8, over=1.5)
-    for i, (y, length) in enumerate(((58, 26), (64, 34), (70, 30), (76, 22), (52, 14), (84, 12))):
-        d.pen([(180 + (i % 2) * 3, y), (180 + length, y + (y - 68) * 0.14)], w=1.5 if i < 3 else 1.0, amp=0.4, taper=0.2, opacity=0.8)
-    # a governor it has long since outrun
-    d.pen([(98, 44), (98, 24)], w=1.8, amp=0.2)
-    for sx in (-1, 1):
-        d.pen([(98, 26), (98 + sx * 16, 30)], w=1.3, amp=0.2)
-        d.disc(98 + sx * 18, 31, 4.6, fill=BRASS, op=0.8, lw=1.2, shade=False)
+    with d.part("hum"):
+        # barrel
+        barrel = [(46, 40), (150, 46), (150, 90), (46, 96)]
+        d.ko(barrel)
+        d.wash(barrel, MADDER, op=0.62, amp=0.9)
+        d.wash([(46, 76), (150, 74), (150, 90), (46, 96)], PAYNE, op=0.26, edge=0, amp=0.5, glaze=False)
+        d.hatch([(48, 80), (148, 77), (148, 89), (48, 94)], gap=3.4, w=0.6, trim=0.25)
+        d.edges(barrel, w=2.0, over=2)
+        for bx in (70, 98, 126):
+            d.pen([(bx, 42 + (bx - 46) * 0.058), (bx, 95 - (bx - 46) * 0.058)], w=1.3, amp=0.3)
+        d.glint([(54, 48), (140, 52)], w=2.0, opacity=0.45)
+        # intake: a flared mouth with the fan showing
+        mouth = ellipse_pts(42, 68, 13, 34, 20)
+        d.ko(mouth)
+        d.wash(mouth, BRASS, op=0.7, amp=0.5, step=8)
+        d.outline(mouth, w=2.0, overlap=5)
+        inner = ellipse_pts(42, 68, 8.5, 26, 16)
+        d.ko(inner)
+        d.wash(inner, INK, op=0.7, amp=0.3, step=6, glaze=False)
+        d.outline(inner, w=1.3, overlap=4)
+        # The fan is a wheel seen nearly edge-on. It is drawn here as the full circle
+        # it really is (blades 25 long) and flattened by the part, so that it turns
+        # as a wheel in perspective. The flattening thins a blade as well, hence w=3.
+        with d.part("fan", pivot=(42, 68), squash=(0.32, 1)):
+            for a in (20, 80, 140, 200, 260, 320):
+                ra = math.radians(a)
+                d.pen([(42, 68), (42 + 25 * math.cos(ra), 68 + 25 * math.sin(ra))], w=3.0, amp=0.1, color=PAPER_LIGHT, opacity=0.9)
+        # exhaust cone
+        cone = [(150, 50), (176, 60), (176, 76), (150, 86)]
+        d.ko(cone)
+        d.wash(cone, BRASS, op=0.7, amp=0.4, step=8)
+        d.edges(cone, w=1.8, over=1.5)
+        # a governor it has long since outrun
+        d.pen([(98, 44), (98, 24)], w=1.8, amp=0.2)
+        with d.part("gov", pivot=(98, 28)):
+            for sx in (-1, 1):
+                d.pen([(98, 26), (98 + sx * 16, 30)], w=1.3, amp=0.2)
+                d.disc(98 + sx * 18, 31, 4.6, fill=BRASS, op=0.8, lw=1.2, shade=False)
+    # what comes out of the cone: two sets of streaks, taking turns
+    streaks = ((58, 26), (64, 34), (70, 30), (76, 22), (52, 14), (84, 12))
+    for group in (0, 1):
+        with d.part("jet-%d" % group):
+            for i, (y, length) in enumerate(streaks):
+                if i % 2 == group:
+                    d.pen([(180 + (i % 2) * 3, y), (180 + length, y + (y - 68) * 0.14)], w=1.5 if i < 3 else 1.0, amp=0.4, taper=0.2, opacity=0.8)
+
+    d.keyframes("gq-spin", "to{transform:rotate(360deg)}")
+    # Edge-on, the governor's arms swing towards you and away: the picture flips.
+    d.keyframes("gq-whirl", "0%,100%{transform:none}50%{transform:scaleX(-1)}")
+    d.keyframes("gq-hum", "0%,100%{transform:none}50%{transform:translateY(.45px)}")
+    d.keyframes("gq-jet", "0%{opacity:0;transform:translateX(-10px)}40%{opacity:1}100%{opacity:0;transform:translateX(3px)}")
+    d.animate(".fan", "gq-spin 1.5s linear infinite")
+    d.animate(".gov", "gq-whirl .62s ease-in-out infinite")
+    d.animate(".hum", "gq-hum .17s steps(2,jump-none) infinite")
+    d.animate(".jet-0", "gq-jet .8s ease-out infinite")
+    d.animate(".jet-1", "gq-jet .8s ease-out infinite", delay=-0.4)
     return d
 
 
@@ -823,7 +869,8 @@ CORDUROY = "#a8672e"   # a pair of trousers
 
 
 def engine_openai():
-    """The talkative engine: a horn gramophone, and the parrot it learned from."""
+    """The talkative engine: a horn gramophone, and the parrot it learned from. The
+    parrot says its piece, the horn says it back, and the parrot thinks about that."""
     d = Drawing(210, 128, seed=190)
     d.pen([(8, 124), (204, 124)], w=2.2, amp=0.5, over=3)
 
@@ -836,39 +883,51 @@ def engine_openai():
     d.pen([(14, 71), (47, 71)], w=2.8, amp=0.3, taper=0.7, over=1.5)
 
     # the parrot: tail first (it hangs behind the bar), then body, wing, head
-    for i, (tx, ty) in enumerate(((17, 97), (21, 101), (25, 98))):
-        feather = [(24 + i * 2, 62), (28 + i * 2, 64), (tx + 3, ty), (tx, ty - 1)]
-        d.ko(feather)
-        d.wash(feather, (MADDER, VERDIGRIS, MADDER)[i], op=0.72, amp=0.3, step=6, glaze=False)
-        d.edges(feather, w=1.1, over=0.6, amp=0.2)
-    body = rotate_pts(ellipse_pts(31, 51, 10.5, 16.5, 18), 10, 31, 51)
-    d.ko(body)
-    d.wash(body, MADDER, op=0.72, amp=0.5, step=7)
-    d.outline(body, w=1.7, overlap=4)
-    wing = rotate_pts(ellipse_pts(26.5, 54, 5.5, 12.5, 14), 14, 26.5, 54)
-    d.ko(wing)
-    d.wash(wing, VERDIGRIS, op=0.75, amp=0.3, step=6, glaze=False)
-    d.outline(wing, w=1.2, overlap=3)
-    for wy in (50, 55, 60):
-        d.pen([(22.5, wy), (26, wy + 2.5), (29.5, wy)], w=0.8, amp=0.1)
-    head = circle_pts(36, 32, 8.6, 14)
-    d.ko(head)
-    d.wash(head, MADDER, op=0.72, amp=0.3, step=6, glaze=False)
-    d.circle(36, 32, 8.6, w=1.6)
-    cheek = circle_pts(38.5, 32, 3.6, 9)                 # the bare white patch round the eye
-    d.ko(cheek, PAPER_LIGHT)
-    d.circle(38.5, 32, 3.6, w=0.8)
-    d.dot(39, 31.6, 1.3)
-    beak = spline([(43, 27), (50, 28.5), (52, 34), (48.5, 39), (46.5, 35), (43.5, 36)], closed=True)
-    d.ko(beak)
-    d.wash(beak, BRASS_LIGHT, op=0.85, amp=0.2, step=4, glaze=False)
-    d.pen(beak + beak[:2], w=1.3, amp=0.15)
-    d.pen([(44, 32.5), (50.5, 32)], w=0.8, amp=0.1)       # beak ajar: it is saying something
+    with d.part("tail", pivot=(27, 63)):
+        for i, (tx, ty) in enumerate(((17, 97), (21, 101), (25, 98))):
+            feather = [(24 + i * 2, 62), (28 + i * 2, 64), (tx + 3, ty), (tx, ty - 1)]
+            d.ko(feather)
+            d.wash(feather, (MADDER, VERDIGRIS, MADDER)[i], op=0.72, amp=0.3, step=6, glaze=False)
+            d.edges(feather, w=1.1, over=0.6, amp=0.2)
+    with d.part("bird"):
+        body = rotate_pts(ellipse_pts(31, 51, 10.5, 16.5, 18), 10, 31, 51)
+        d.ko(body)
+        d.wash(body, MADDER, op=0.72, amp=0.5, step=7)
+        d.outline(body, w=1.7, overlap=4)
+        with d.part("wing", pivot=(28, 43)):
+            wing = rotate_pts(ellipse_pts(26.5, 54, 5.5, 12.5, 14), 14, 26.5, 54)
+            d.ko(wing)
+            d.wash(wing, VERDIGRIS, op=0.75, amp=0.3, step=6, glaze=False)
+            d.outline(wing, w=1.2, overlap=3)
+            for wy in (50, 55, 60):
+                d.pen([(22.5, wy), (26, wy + 2.5), (29.5, wy)], w=0.8, amp=0.1)
+        with d.part("head", pivot=(33, 40)):
+            head = circle_pts(36, 32, 8.6, 14)
+            d.ko(head)
+            d.wash(head, MADDER, op=0.72, amp=0.3, step=6, glaze=False)
+            d.circle(36, 32, 8.6, w=1.6)
+            cheek = circle_pts(38.5, 32, 3.6, 9)             # the bare white patch round the eye
+            d.ko(cheek, PAPER_LIGHT)
+            d.circle(38.5, 32, 3.6, w=0.8)
+            with d.part("eye", pivot=(39, 31.6)):
+                d.dot(39, 31.6, 1.3)
+            # the lower half of the beak, tucked up behind the upper until it speaks
+            with d.part("jaw", pivot=(44, 35.4)):
+                jaw = [(43.4, 34.4), (48.2, 35.4), (47, 38.7), (44, 38)]
+                d.ko(jaw)
+                d.wash(jaw, BRASS, op=0.9, amp=0.1, step=3, glaze=False, edge=0)
+                d.edges(jaw, w=0.9, over=0.3, amp=0.1)
+            beak = spline([(43, 27), (50, 28.5), (52, 34), (48.5, 39), (46.5, 35), (43.5, 36)], closed=True)
+            d.ko(beak)
+            d.wash(beak, BRASS_LIGHT, op=0.85, amp=0.2, step=4, glaze=False)
+            d.pen(beak + beak[:2], w=1.3, amp=0.15)
+            d.pen([(44, 32.5), (50.5, 32)], w=0.8, amp=0.1)
+            with d.part("crest", pivot=(35, 24)):
+                d.pen([(30, 20), (33, 23.5)], w=1.0, amp=0.1)
+                d.pen([(34, 18.5), (35.5, 23)], w=1.0, amp=0.1)
+                d.pen([(38.5, 19), (38, 23.3)], w=1.0, amp=0.1)
     for fx in (28, 34):                                    # feet round the bar
         d.pen([(fx, 66), (fx - 1, 71), (fx + 2, 72.5)], w=1.3, amp=0.15)
-    d.pen([(30, 20), (33, 23.5)], w=1.0, amp=0.1)          # crest
-    d.pen([(34, 18.5), (35.5, 23)], w=1.0, amp=0.1)
-    d.pen([(38.5, 19), (38, 23.3)], w=1.0, amp=0.1)
 
     # the cabinet
     for fx in (76, 138):
@@ -890,49 +949,91 @@ def engine_openai():
     d.pen([(68, 106), (57, 106), (57, 97)], w=2.0, amp=0.2, taper=0.8)
     d.disc(57, 95, 3.4, fill=UMBER, op=0.8, lw=1.2, shade=False)
 
-    # turntable and record
-    plat = ellipse_pts(100, 88, 31, 5.5, 22)
-    d.ko(plat)
-    d.wash(plat, INK, op=0.72, amp=0.3, step=8, glaze=False)
-    d.outline(plat, w=1.6, overlap=4)
-    d.arc(100, 88, 22, 3.6, 200, 340, w=0.7, color=PAPER_LIGHT, opacity=0.6)
-    label = ellipse_pts(100, 88, 8, 1.8, 10)
-    d.wash(label, MADDER, op=0.9, amp=0.1, step=4, glaze=False, edge=0)
+    # turntable and record: slightly warped, as they all are, so it rides up and down
+    with d.part("disc", pivot=(100, 88)):
+        plat = ellipse_pts(100, 88, 31, 5.5, 22)
+        d.ko(plat)
+        d.wash(plat, INK, op=0.72, amp=0.3, step=8, glaze=False)
+        d.outline(plat, w=1.6, overlap=4)
+        d.arc(100, 88, 22, 3.6, 200, 340, w=0.7, color=PAPER_LIGHT, opacity=0.6)
+        label = ellipse_pts(100, 88, 8, 1.8, 10)
+        d.wash(label, MADDER, op=0.9, amp=0.1, step=4, glaze=False, edge=0)
 
     # the horn: a neck up from the tone-arm, flaring to a mouth that faces up and out
-    mouth = rotate_pts(ellipse_pts(163, 41, 31, 11, 24), 62, 163, 41)
-    top = (148.5, 13.6)
-    bottom = (177.5, 68.4)
-    flare = spline([(116, 86), (122, 70), (132, 46), top]) + spline([bottom, (146, 72), (130, 84), (122, 89)])
-    d.ko(flare)
-    d.wash(flare, BRASS, op=0.7, amp=0.8)
-    d.wash(spline([(124, 88), (140, 76), bottom, (160, 58), (136, 70)], closed=True), PAYNE, op=0.2, edge=0, amp=0.5)
-    d.hatch(spline([(128, 86), (146, 74), (170, 64), (150, 66), (134, 76)], closed=True), gap=3.0, w=0.6, trim=0.25)
-    d.pen(spline([(116, 86), (122, 70), (132, 46), top]), w=1.9, amp=0.4)
-    d.pen(spline([bottom, (146, 72), (130, 84), (122, 89)]), w=1.9, amp=0.4)
-    for t in (0.36, 0.62):                                  # the seams where its petals join
-        d.pen([(120 + 6 * t, 87 - 6 * t), (150 + 16 * t, 28 + 36 * t)], w=0.8, amp=0.3, opacity=0.7)
-    d.ko(mouth)
-    d.wash(mouth, BRASS_LIGHT, op=0.7, amp=0.5, step=8)
-    d.outline(mouth, w=2.0, overlap=5)
-    throat = rotate_pts(ellipse_pts(160, 43, 19, 5.5, 16), 62, 160, 43)
-    d.ko(throat)
-    d.wash(throat, INK, op=0.66, amp=0.3, step=6, glaze=False)
-    d.outline(throat, w=1.2, overlap=4)
-    d.glint([(127, 62), (136, 42), (146, 24)], w=2.0, opacity=0.55)
+    with d.part("horn", pivot=(121, 88)):
+        mouth = rotate_pts(ellipse_pts(163, 41, 31, 11, 24), 62, 163, 41)
+        top = (148.5, 13.6)
+        bottom = (177.5, 68.4)
+        flare = spline([(116, 86), (122, 70), (132, 46), top]) + spline([bottom, (146, 72), (130, 84), (122, 89)])
+        d.ko(flare)
+        d.wash(flare, BRASS, op=0.7, amp=0.8)
+        d.wash(spline([(124, 88), (140, 76), bottom, (160, 58), (136, 70)], closed=True), PAYNE, op=0.2, edge=0, amp=0.5)
+        d.hatch(spline([(128, 86), (146, 74), (170, 64), (150, 66), (134, 76)], closed=True), gap=3.0, w=0.6, trim=0.25)
+        d.pen(spline([(116, 86), (122, 70), (132, 46), top]), w=1.9, amp=0.4)
+        d.pen(spline([bottom, (146, 72), (130, 84), (122, 89)]), w=1.9, amp=0.4)
+        for t in (0.36, 0.62):                              # the seams where its petals join
+            d.pen([(120 + 6 * t, 87 - 6 * t), (150 + 16 * t, 28 + 36 * t)], w=0.8, amp=0.3, opacity=0.7)
+        d.ko(mouth)
+        d.wash(mouth, BRASS_LIGHT, op=0.7, amp=0.5, step=8)
+        d.outline(mouth, w=2.0, overlap=5)
+        throat = rotate_pts(ellipse_pts(160, 43, 19, 5.5, 16), 62, 160, 43)
+        d.ko(throat)
+        d.wash(throat, INK, op=0.66, amp=0.3, step=6, glaze=False)
+        d.outline(throat, w=1.2, overlap=4)
+        d.glint([(127, 62), (136, 42), (146, 24)], w=2.0, opacity=0.55)
     # the tone-arm's elbow, down onto the record
     d.pen([(119, 87), (112, 82), (108, 87)], w=2.6, amp=0.2, taper=0.8)
     d.disc(108, 87, 2.6, fill=BRASS, op=0.85, lw=1.1, shade=False)
 
     # and what comes out of it
-    for r, a0, a1, w in ((23, -56, 0, 1.5), (31, -51, -5, 1.25), (39, -46, -10, 1.0)):
-        d.arc(163, 41, r, r, a0, a1, w=w, opacity=0.8)
+    for k, (r, a0, a1, w) in enumerate(((23, -56, 0, 1.5), (31, -51, -5, 1.25), (39, -46, -10, 1.0))):
+        with d.part("note note-%d" % k, pivot=(163, 41)):
+            d.arc(163, 41, r, r, a0, a1, w=w, opacity=0.8)
+
+    # One conversation every 8 seconds:
+    #   0.6s  the parrot squawks, two syllables (beak, crest, a thrust of the head)
+    #   1.7s  the horn says it back (it throbs; the sound comes out in three rings)
+    #   3.5s  a blink
+    #   4.2s  the head goes over on one side to consider this, and stays there a while
+    #   6.4s  a shuffle of the wing
+    #   7.2s  another blink
+    # The spring in the easing overshoots a little, which is what makes it a bird.
+    C = "8s cubic-bezier(.3,1.5,.6,1) infinite"
+    d.keyframes("pa-head", "0%,6%{transform:none}8%,16%{transform:rotate(8deg)}19%,51%{transform:none}"
+                           "54%,71%{transform:rotate(-15deg)}75%,100%{transform:none}")
+    d.keyframes("pa-jaw", "0%,7%{transform:none}8.5%,10.5%{transform:rotate(26deg)}12%{transform:none}"
+                          "13.5%,15.5%{transform:rotate(26deg)}17%,100%{transform:none}")
+    d.keyframes("pa-crest", "0%,6%{transform:none}8%,17%{transform:rotate(-14deg) scale(1.35)}20%,100%{transform:none}")
+    d.keyframes("pa-bird", "0%,6%{transform:none}8%,16%{transform:translateY(1px)}19%,100%{transform:none}")
+    d.keyframes("pa-wing", "0%,79%{transform:none}81%{transform:rotate(-26deg)}83%{transform:rotate(-5deg)}"
+                           "85%{transform:rotate(-22deg)}88%,100%{transform:none}")
+    d.keyframes("pa-blink", "0%,43%{transform:none}44.2%{transform:scaleY(.1)}45.4%,89%{transform:none}"
+                            "90.2%{transform:scaleY(.1)}91.4%,100%{transform:none}")
+    d.keyframes("pa-tail", "0%{transform:rotate(-3deg)}100%{transform:rotate(5deg)}")
+    d.keyframes("pa-horn", "0%,21%{transform:none}23%{transform:scale(1.03)}26.5%{transform:none}"
+                           "28.5%{transform:scale(1.025)}32%,100%{transform:none}")
+    d.keyframes("pa-note", "0%,21%{opacity:0;transform:scale(.86)}24%{opacity:1;transform:none}"
+                           "33%{opacity:1;transform:none}39%,100%{opacity:0;transform:scale(1.07)}")
+    # 33 1/3 turns a minute is one every 1.8 seconds
+    d.keyframes("pa-disc", "0%,100%{transform:rotate(-.9deg)}50%{transform:rotate(.9deg)}")
+    d.animate(".head", "pa-head " + C)
+    d.animate(".jaw", "pa-jaw 8s ease-out infinite")
+    d.animate(".crest", "pa-crest " + C)
+    d.animate(".bird", "pa-bird " + C)
+    d.animate(".wing", "pa-wing 8s ease-in-out infinite")
+    d.animate(".eye", "pa-blink 8s linear infinite")
+    d.animate(".tail", "pa-tail 2.9s ease-in-out infinite alternate")
+    d.animate(".horn", "pa-horn 8s ease-out infinite")
+    for k in range(3):
+        d.animate(".note-%d" % k, "pa-note 8s ease-out infinite", delay=0.2 * k)
+    d.animate(".disc", "pa-disc 1.8s ease-in-out infinite")
     return d
 
 
 def engine_claude():
     """The thoughtful engine. A gentleman in corduroy trousers smokes a pipe; the smoke
-    is caught in a hood and turns the wheel that does the writing."""
+    is caught in a hood and turns the wheel that does the writing. He draws on the pipe,
+    lets a ring go, raises an eyebrow at it, and taps his foot while the page fills."""
     d = Drawing(210, 128, seed=195)
     d.pen([(6, 124), (204, 124)], w=2.2, amp=0.5, over=3)
 
@@ -997,11 +1098,12 @@ def engine_claude():
     d.pen([(101, 90), (105.5, 86.5)], w=0.9, amp=0.1)                        # the crease behind the knee
     d.pen([(91.5, 115.5), (108.5, 115.5)], w=1.6, amp=0.2)                   # turn-up
     d.pen([(92, 112), (108, 112)], w=0.9, amp=0.2)
-    shoe = spline([(91, 116), (107, 115.5), (120, 119), (122, 123.5), (91, 123.5)], closed=True)
-    d.ko(shoe)
-    d.wash(shoe, UMBER, op=0.85, amp=0.2, step=5, glaze=False)
-    d.pen(shoe + shoe[:2], w=1.5, amp=0.2)
-    d.glint([(109, 118.5), (116, 120.5)], w=1.0, opacity=0.6)
+    with d.part("tap", pivot=(93, 123)):                                      # heel down, toe free
+        shoe = spline([(91, 116), (107, 115.5), (120, 119), (122, 123.5), (91, 123.5)], closed=True)
+        d.ko(shoe)
+        d.wash(shoe, UMBER, op=0.85, amp=0.2, step=5, glaze=False)
+        d.pen(shoe + shoe[:2], w=1.5, amp=0.2)
+        d.glint([(109, 118.5), (116, 120.5)], w=1.0, opacity=0.6)
 
     # head, in profile, facing the machine
     head = spline([(47, 36), (49, 27), (56, 22), (64, 24), (68, 29), (69, 33), (74, 37.5), (69.5, 39),
@@ -1015,28 +1117,35 @@ def engine_claude():
     d.arc(56, 36, 2.2, 3.2, 60, 300, w=0.9)                                    # ear
     d.circle(65, 32.5, 3.1, w=0.9)                                             # spectacles
     d.pen([(62, 32), (57, 33.5)], w=0.7, amp=0.1)
-    d.dot(65.4, 32.6, 0.9)
-    d.pen([(62.5, 28), (67.5, 28.6)], w=1.1, amp=0.1)                          # eyebrow
+    with d.part("eye", pivot=(65.4, 32.6)):
+        d.dot(65.4, 32.6, 0.9)
+    with d.part("brow"):
+        d.pen([(62.5, 28), (67.5, 28.6)], w=1.1, amp=0.1)                      # eyebrow
     d.pen([(64.5, 40), (69, 40.5), (70.5, 42.5)], w=1.8, amp=0.15, taper=0.5)  # moustache
 
     # the pipe, and the hand that steadies it
-    d.pen([(69, 42.5), (79, 46.5)], w=1.7, amp=0.1, taper=0.9, color=UMBER)
-    d.pen([(69, 41.7), (79, 45.7)], w=0.6, amp=0.1)
-    bowl = [(78.5, 40.5), (86.5, 40.5), (85.5, 49), (79.5, 49)]
-    d.ko(bowl)
-    d.wash(bowl, UMBER, op=0.85, amp=0.2, step=4, glaze=False)
-    d.edges(bowl, w=1.2, over=0.5, amp=0.15)
-    d.wash(ellipse_pts(82.5, 40.5, 3.2, 1.1, 8), EMBER, op=0.95, amp=0.1, step=3, glaze=False, edge=0)
+    # (the pipe and the hand are one part in two pieces, because the sleeve is painted
+    # between them: both lift a touch, about the corner of his mouth, when he draws on it)
+    with d.part("pipe", pivot=(69, 42)):
+        d.pen([(69, 42.5), (79, 46.5)], w=1.7, amp=0.1, taper=0.9, color=UMBER)
+        d.pen([(69, 41.7), (79, 45.7)], w=0.6, amp=0.1)
+        bowl = [(78.5, 40.5), (86.5, 40.5), (85.5, 49), (79.5, 49)]
+        d.ko(bowl)
+        d.wash(bowl, UMBER, op=0.85, amp=0.2, step=4, glaze=False)
+        d.edges(bowl, w=1.2, over=0.5, amp=0.15)
+        with d.part("ember"):
+            d.wash(ellipse_pts(82.5, 40.5, 3.2, 1.1, 8), EMBER, op=0.95, amp=0.1, step=3, glaze=False, edge=0)
     sleeve = [(52, 62), (62, 58), (80, 51), (84, 57), (66, 70), (56, 74)]
     d.ko(sleeve)
     d.wash(sleeve, PAYNE, op=0.62, amp=0.4, step=7)
     d.edges(sleeve, w=1.6, over=0.8, amp=0.3)
-    hand = spline([(78, 50), (81, 46.5), (87, 47), (89, 51), (86, 55.5), (80.5, 55.5)], closed=True)
-    d.ko(hand)
-    d.wash(hand, FLESH, op=0.75, amp=0.15, step=4, glaze=False)
-    d.pen(hand + hand[:2], w=1.1, amp=0.1)
-    d.pen([(82.5, 49), (86.5, 49.5)], w=0.6, amp=0.05)                         # fingers
-    d.pen([(82.5, 51.7), (87, 52.2)], w=0.6, amp=0.05)
+    with d.part("pipe", pivot=(69, 42)):
+        hand = spline([(78, 50), (81, 46.5), (87, 47), (89, 51), (86, 55.5), (80.5, 55.5)], closed=True)
+        d.ko(hand)
+        d.wash(hand, FLESH, op=0.75, amp=0.15, step=4, glaze=False)
+        d.pen(hand + hand[:2], w=1.1, amp=0.1)
+        d.pen([(82.5, 49), (86.5, 49.5)], w=0.6, amp=0.05)                     # fingers
+        d.pen([(82.5, 51.7), (87, 52.2)], w=0.6, amp=0.05)
 
     # ---- the works: hood, flue, wheel, and the cabinet that does the writing ------------
     cab = rect_pts(150, 84, 46, 40)
@@ -1055,13 +1164,15 @@ def engine_claude():
         off = 3.0 + k * 2.9
         a = (150 + (125 - 150) * t0, 95 + off + (108 - 95) * t0)
         b = (150 + (125 - 150) * t1, 95 + off + (108 - 95) * t1)
-        d.pen([a, b], w=0.6, amp=0.5, wl=6, opacity=0.8)
+        with d.part("written written-%d" % k):
+            d.pen([a, b], w=0.6, amp=0.5, wl=6, opacity=0.8)
     # the post and the wheel
     post = [(169, 84), (177, 84), (175.5, 60), (170.5, 60)]
     d.ko(post)
     d.wash(post, PAYNE, op=0.5, amp=0.3, step=7, glaze=False)
     d.edges(post, w=1.5, over=1)
-    d.cog(173, 56, 19, 10, spokes=4, lw=1.5)
+    with d.part("wheel", pivot=(173, 56)):
+        d.cog(173, 56, 19, 10, spokes=4, lw=1.5)
     # the flue down to it, and the hood that feeds the flue
     d.pipe([(122, 13), (122, 7), (173, 7), (173, 33)], r=3.6, bend=6, lw=1.4, hatch=False, flanges=(0.98,))
     hood = [(103, 30), (141, 30), (130, 13), (114, 13)]
@@ -1073,41 +1184,93 @@ def engine_claude():
 
     # ---- the smoke that drives it all -----------------------------------------------------
     drift = spline([(80, 39), (83, 30), (90, 24), (102, 25), (116, 27), (118, 33), (104, 35), (92, 34), (86, 39)], closed=True)
-    d.wash(drift, PAYNE, op=0.16, amp=1.0, step=6, glaze=False, edge=0.1)
-    d.pen(spline([(83, 38), (87, 32), (82, 27), (89, 22), (98, 25), (108, 30)]), w=1.3, amp=0.4, opacity=0.75)
-    d.pen(spline([(85, 37), (93, 35), (96, 29), (107, 33), (116, 29)]), w=1.1, amp=0.4, opacity=0.7)
-    d.circle(92, 17, 3.4, w=0.9, opacity=0.6, squash=0.7)                      # a smoke ring that got away
-    d.circle(99, 11, 2.3, w=0.8, opacity=0.5, squash=0.7)
+    with d.part("haze"):
+        d.wash(drift, PAYNE, op=0.16, amp=1.0, step=6, glaze=False, edge=0.1)
+    with d.part("wisp-a"):
+        d.pen(spline([(83, 38), (87, 32), (82, 27), (89, 22), (98, 25), (108, 30)]), w=1.3, amp=0.4, opacity=0.75)
+    with d.part("wisp-b"):
+        d.pen(spline([(85, 37), (93, 35), (96, 29), (107, 33), (116, 29)]), w=1.1, amp=0.4, opacity=0.7)
+    with d.part("ring-a", pivot=(92, 17)):
+        d.circle(92, 17, 3.4, w=0.9, opacity=0.6, squash=0.7)                  # a smoke ring that got away
+    with d.part("ring-b", pivot=(99, 11)):
+        d.circle(99, 11, 2.3, w=0.8, opacity=0.5, squash=0.7)
+
+    # He takes a pull on the pipe every three seconds (the bowl lifts, the ember
+    # brightens) and a ring leaves it, rising from the bowl through the place it is
+    # drawn and on up past the hood. Rings alternate between the two that are drawn.
+    d.keyframes("cl-pull", "0%,100%{transform:none}7%{transform:rotate(-4.5deg)}20%{transform:none}")
+    d.keyframes("cl-ember", "0%{opacity:.55}8%{opacity:1}45%,100%{opacity:.55}")
+    d.keyframes("cl-ring-a", "0%{opacity:0;transform:translate(-9px,21px) scale(.35)}14%{opacity:1}"
+                             "55%{opacity:1;transform:none}100%{opacity:0;transform:translate(6px,-11px) scale(1.35)}")
+    d.keyframes("cl-ring-b", "0%{opacity:0;transform:translate(-16px,27px) scale(.4)}14%{opacity:1}"
+                             "60%{opacity:1;transform:none}100%{opacity:0;transform:translate(5px,-8px) scale(1.4)}")
+    d.keyframes("cl-haze", "0%{opacity:.5;transform:translate(-2px,1px)}100%{opacity:1;transform:translate(2.5px,-1px)}")
+    d.keyframes("cl-wisp", "0%{opacity:.35;transform:translate(-1.5px,1.5px)}100%{opacity:1;transform:translate(2px,-1px)}")
+    d.animate(".pipe", "cl-pull 3s ease-out infinite")
+    d.animate(".ember", "cl-ember 3s ease-out infinite")
+    d.animate(".ring-a", "cl-ring-a 6s ease-out infinite", delay=0.3)
+    d.animate(".ring-b", "cl-ring-b 6s ease-out infinite", delay=3.3)
+    d.animate(".haze", "cl-haze 3.7s ease-in-out infinite alternate")
+    d.animate(".wisp-a", "cl-wisp 2.9s ease-in-out infinite alternate")
+    d.animate(".wisp-b", "cl-wisp 3.4s ease-in-out infinite alternate", delay=-1.6)
+    # The rest of him. The eyebrow goes up as a ring clears the hood; he blinks; and
+    # the foot taps twice, a habit.
+    d.keyframes("cl-brow", "0%,36%{transform:none}40%,56%{transform:translateY(-1.5px)}61%,100%{transform:none}")
+    d.keyframes("cl-blink", "0%,71%{transform:none}72.5%{transform:scaleY(.1)}74%,100%{transform:none}")
+    d.keyframes("cl-tap", "0%,80%{transform:none}83%{transform:rotate(-8deg)}86%{transform:none}"
+                          "89%{transform:rotate(-8deg)}92%,100%{transform:none}")
+    d.animate(".brow", "cl-brow 6s ease-in-out infinite")
+    d.animate(".eye", "cl-blink 6s linear infinite")
+    d.animate(".tap", "cl-tap 6s ease-in-out infinite")
+    # The works. The wheel turns the whole time; the page is written a line at a
+    # time, and is a fresh one when the three are done.
+    d.keyframes("cl-wheel", "to{transform:rotate(360deg)}")
+    d.animate(".wheel", "cl-wheel 16s linear infinite")
+    for k in range(3):
+        a = 14 + k * 24
+        d.keyframes("cl-line-%d" % k, "0%%,%d%%{opacity:0}%d%%,93%%{opacity:1}98%%,100%%{opacity:0}" % (a, a + 5))
+        d.animate(".written-%d" % k, "cl-line-%d 9s linear infinite" % k)
     return d
 
 
 def key():
+    """The key on the title page. A glint runs down its shaft now and then, and it
+    gives the least turn, as if trying a lock."""
     d = Drawing(124, 46, seed=180)
-    # bow: a ring with a heart cut in it
-    d.disc(22, 23, 19, fill=BRASS, op=0.7, lw=2.0)
-    hole = spline([(22, 31), (13, 22), (16, 15), (22, 19), (28, 15), (31, 22)], closed=True)
-    d.ko(hole)
-    d.pen(hole + hole[:2], w=1.3, amp=0.2)
-    d.hatch(annulus_sector(22, 23, 13, 17.5, 0, 100, 8), gap=2.8, w=0.6)
-    # collar and shaft
-    for cx in (43, 49):
-        coll = rect_pts(cx - 2, 15, 4.5, 16)
-        d.ko(coll)
-        d.wash(coll, BRASS, op=0.75, amp=0.2, step=5, glaze=False)
-        d.edges(coll, w=1.2, over=0.6)
-    shaft = rect_pts(51, 19.5, 62, 7)
-    d.ko(shaft)
-    d.wash(shaft, BRASS, op=0.7, amp=0.3, step=10)
-    d.wash(rect_pts(51, 23.5, 62, 3), PAYNE, op=0.26, edge=0, amp=0.2, glaze=False)
-    d.line((51, 19.5), (114, 19.5), w=1.6, over=1)
-    d.line((51, 26.5), (114, 26.5), w=1.6, over=1)
-    d.arc(113, 23, 4, 3.5, -90, 90, w=1.6)
-    # bit, with its wards
-    bit = [(88, 26.5), (110, 26.5), (110, 42), (104, 42), (104, 34), (99, 34), (99, 42), (94, 42), (94, 36), (88, 36)]
-    d.ko(bit)
-    d.wash(bit, BRASS, op=0.7, amp=0.3, step=6, glaze=False)
-    d.edges(bit, w=1.5, over=0.6)
-    d.glint([(54, 21.5), (86, 21.5)], w=1.2, opacity=0.6)
+    with d.part("key", pivot=(22, 23)):
+        # bow: a ring with a heart cut in it
+        d.disc(22, 23, 19, fill=BRASS, op=0.7, lw=2.0)
+        hole = spline([(22, 31), (13, 22), (16, 15), (22, 19), (28, 15), (31, 22)], closed=True)
+        d.ko(hole)
+        d.pen(hole + hole[:2], w=1.3, amp=0.2)
+        d.hatch(annulus_sector(22, 23, 13, 17.5, 0, 100, 8), gap=2.8, w=0.6)
+        # collar and shaft
+        for cx in (43, 49):
+            coll = rect_pts(cx - 2, 15, 4.5, 16)
+            d.ko(coll)
+            d.wash(coll, BRASS, op=0.75, amp=0.2, step=5, glaze=False)
+            d.edges(coll, w=1.2, over=0.6)
+        shaft = rect_pts(51, 19.5, 62, 7)
+        d.ko(shaft)
+        d.wash(shaft, BRASS, op=0.7, amp=0.3, step=10)
+        d.wash(rect_pts(51, 23.5, 62, 3), PAYNE, op=0.26, edge=0, amp=0.2, glaze=False)
+        d.line((51, 19.5), (114, 19.5), w=1.6, over=1)
+        d.line((51, 26.5), (114, 26.5), w=1.6, over=1)
+        d.arc(113, 23, 4, 3.5, -90, 90, w=1.6)
+        # bit, with its wards
+        bit = [(88, 26.5), (110, 26.5), (110, 42), (104, 42), (104, 34), (99, 34), (99, 42), (94, 42), (94, 36), (88, 36)]
+        d.ko(bit)
+        d.wash(bit, BRASS, op=0.7, amp=0.3, step=6, glaze=False)
+        d.edges(bit, w=1.5, over=0.6)
+        with d.part("shine"):
+            d.glint([(54, 21.5), (86, 21.5)], w=1.2, opacity=0.6)
+    d.keyframes("ky-shine", "0%,58%{opacity:1;transform:none}62%{opacity:0;transform:none}63%{opacity:0;transform:translateX(-8px)}"
+                            "70%{opacity:1}84%{opacity:1;transform:translateX(24px)}90%{opacity:0;transform:translateX(26px)}"
+                            "91%{opacity:0;transform:none}100%{opacity:1;transform:none}")
+    d.keyframes("ky-try", "0%,30%{transform:none}32.5%{transform:rotate(-2deg)}35.5%{transform:rotate(1.6deg)}"
+                          "38%{transform:rotate(-.8deg)}41%,100%{transform:none}")
+    d.animate(".shine", "ky-shine 7s ease-in-out infinite")
+    d.animate(".key", "ky-try 7s ease-in-out infinite")
     return d
 
 
@@ -1120,9 +1283,13 @@ def flourish():
         d.curve([P(14, 15), P(52, 9), P(96, 18), P(136, 12), P(160, 15), P(170, 21), P(164, 26), P(157, 21), P(162, 15)], w=1.9, taper=0.25)
         d.curve([P(30, 19), P(70, 23), P(110, 14), P(142, 19)], w=1.1, taper=0.2)
         d.dot(190 + sx * 178, 15, 1.7)
-    dia = [(190, 6), (199, 15), (190, 24), (181, 15)]
-    d.wash(dia, MADDER, op=0.75, amp=0.3, step=5, glaze=False)
-    d.edges(dia, w=1.5, over=0.8)
+    # the diamond is on a pin, and now and then it turns right round on it
+    with d.part("gem", pivot=(190, 15)):
+        dia = [(190, 6), (199, 15), (190, 24), (181, 15)]
+        d.wash(dia, MADDER, op=0.75, amp=0.3, step=5, glaze=False)
+        d.edges(dia, w=1.5, over=0.8)
+    d.keyframes("fl-twirl", "0%,84%{transform:none}90%{transform:scaleX(-1)}96%,100%{transform:none}")
+    d.animate(".gem", "fl-twirl 9s ease-in-out infinite", delay=-3)
     return d
 
 

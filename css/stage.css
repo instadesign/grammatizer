@@ -79,7 +79,7 @@
 .cog-mid    { left: calc(var(--cog-b-x) - 44px); top: calc(var(--cog-b-y) - 44px); width: 88px; }
 .gear       { left: calc(var(--gear-x) - 30px); width: 60px; }
 .gear--1    { top: calc(var(--gear-y-1) - 30px); }
-.gear--2    { top: calc(var(--gear-y-2) - 30px); rotate: 22.5deg; }
+.gear--2    { top: calc(var(--gear-y-2) - 30px); rotate: 22.5deg; }   /* also --rest in animations.css */
 .gear--3    { top: calc(var(--gear-y-3) - 30px); }
 
 .whistle {

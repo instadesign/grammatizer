@@ -18,6 +18,7 @@ Grammatizer.router = (function () {
     transitionOverlay = document.getElementById("machine-transition");
 
     Grammatizer.stage.init();
+    Grammatizer.art.init();
     Grammatizer.machine.init();
     Grammatizer.screenConnect.init();
     Grammatizer.screenIgnition.init();

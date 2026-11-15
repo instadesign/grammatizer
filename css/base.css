@@ -108,6 +108,13 @@ img, svg {
   max-width: 100%;
 }
 
+/* A drawing that js/art.js has rebuilt in the page in place of its <img> (see there).
+   It has to sit in the layout exactly as the image did. */
+.art {
+  display: block;
+  max-width: 100%;
+}
+
 a {
   color: var(--color-brass-dark);
 }

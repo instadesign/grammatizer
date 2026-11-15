@@ -200,10 +200,15 @@ Grammatizer.machine = (function () {
 
   /* ---- machine state ----------------------------------------------------------------- */
 
+  // The animations that are the machine being DRIVEN. Each wheel also has a slow
+  // "creep" (css/animations.css), the machine ticking over, which a spin-down must
+  // leave alone: it is what the wheels settle into.
   function turningAnimations() {
     const list = [];
     els.stage.querySelectorAll(".turns, .runs").forEach((el) => {
-      el.getAnimations().forEach((anim) => list.push(anim));
+      el.getAnimations().forEach((anim) => {
+        if (anim.animationName !== "creep") list.push(anim);
+      });
     });
     return list;
   }

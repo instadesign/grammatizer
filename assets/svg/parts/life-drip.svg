@@ -1,0 +1,8 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="1646 868 20 40" width="20" height="40">
+<style>@keyframes dr-drop{0%{opacity:0;transform:scale(.3)}22%,70%{opacity:1;transform:none}84%{opacity:1;transform:translateY(27px) scale(.9,1.3)}88%,100%{opacity:0;transform:translateY(30px)}}.drop{animation:dr-drop 7.4s ease-in infinite;animation-delay:calc(0s - var(--t,0s));animation-play-state:var(--ps,running)}@media (prefers-reduced-motion:reduce){*{animation:none!important}}</style>
+<g fill="#2a211b">
+<g data-p="1656 878" transform="translate(1656 878)"><g class="drop"><g transform="translate(-1656 -878)">
+<path d="M1657.5 877.3Q1657.8 877.9 1657.5 878.5Q1657.2 879.1 1656.5 879.3Q1655.8 879.4 1655.3 879Q1654.8 878.6 1654.8 877.9Q1654.8 877.2 1655.3 876.8Q1655.8 876.4 1656.5 876.5Q1657.2 876.7 1657.5 877.3Z"/>
+</g></g></g>
+</g>
+</svg>

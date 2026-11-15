@@ -80,6 +80,30 @@ a notice.
 - `js/machine.js` turns what the app is doing into motion and sound; `js/sound.js`
   synthesises the sounds (no audio files). Sound starts at the first pull of the lever
   and the ear-trumpet on the machine mutes it.
+- Motion comes from two places. What the *machine* does (cogs driven while it writes,
+  the lever, the gauges) is page CSS in `css/animations.css`, keyed off the machine's
+  state; at rest the gearing creeps round, and stops only for a pause or a jam. What a
+  *drawing* does by itself (the four engines on the title page, the key, and the
+  workshop's small lives: the cat, the kettle, the mouse, the lamps, the fire, someone
+  behind the spy-hole) is written into its own SVG file by the drawing code, as CSS
+  animation: `d.part(...)`, `d.keyframes(...)`, `d.animate(...)` in `tools/draw/ink.py`.
+- Those files animate by themselves in a plain `<img>`, which is how `index.html`
+  uses them, but that is costly: the browser repaints an animated image whole on every
+  frame, and these drawings are slow to paint. So `js/art.js` takes each one apart
+  into layers, one per moving part, which the browser can slide and turn without
+  repainting. Measured on the console, ten small pictures kept nearly half a
+  processor core busy as images and under a third of that as layers. Do not add motion
+  to a drawing that is not on its list, and never to the plate itself.
+- The workshop's lives are drawn on the plate in place and then lifted out of it into
+  `assets/svg/parts/life-*.svg` (`d.lift(...)`; their boxes are `LIFE` in `layout.py`).
+  Lifting takes the same strokes out of the same random stream, so it changes nothing
+  else on the plate. Anything NEW has to be drawn last, or it re-rolls the wobble of
+  every stroke after it.
+- `python3 -m tools.draw.frames sheet.html engine-openai:8:16` writes a contact sheet:
+  a drawing's motion as sixteen stills across eight seconds. Motion cannot be judged
+  from one screenshot, and a headless browser's clock is not a way to catch a pose.
+- Everything that moves only to be looked at stops for "reduce motion", and pauses
+  when the page has not been touched for three minutes (never while it is writing).
 - Positions live in one place, `tools/draw/layout.py`, which writes `css/layout.css`.
   To move something, change it there and run `python3 -m tools.draw.build` from the
   repo root (standard library only). Don't edit `css/layout.css` or the SVGs by hand.

@@ -23,8 +23,31 @@ Grammatizer.screenConnect = (function () {
     };
 
     els.connectBtn.addEventListener("click", handleConnect);
+    ["pointerenter", "focus"].forEach((type) => els.connectBtn.addEventListener(type, () => stirCogs(true)));
+    ["pointerleave", "blur"].forEach((type) => els.connectBtn.addEventListener(type, () => stirCogs(false)));
 
     restoreFromProfile();
+    els.root.querySelectorAll('input[name="engine"]').forEach((radio) => radio.addEventListener("change", paceEngines));
+    paceEngines();
+  }
+
+  // All four engines tick over on their cards; the one that is chosen goes at it
+  // properly, and the others ease off. (The drawings move themselves: see js/art.js.)
+  function paceEngines() {
+    els.root.querySelectorAll(".engine-card").forEach((card) => {
+      Grammatizer.art.setPace(card, card.querySelector("input").checked ? 1.35 : 0.6);
+    });
+  }
+
+  // The two cogs behind the corners of the title page turn slowly by themselves
+  // (css/animations.css). With the pointer or the focus on the button they pick up:
+  // the machine can tell it is about to be started. A playback rate, not a new
+  // duration, so they gather speed from where they are instead of jumping. With
+  // "reduce motion" on there are no animations here to find, and this does nothing.
+  function stirCogs(eager) {
+    els.root.querySelectorAll(".frontispiece-cog").forEach((cog) => {
+      cog.getAnimations().forEach((anim) => anim.updatePlaybackRate(eager ? 8 : 1));
+    });
   }
 
   function selectedEngine() {

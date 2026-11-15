@@ -13,10 +13,29 @@ output rasterises fast, stays sharp at any scale, and costs nothing while animat
 
 Painter's order: call things in the order they should be painted. A typical object is
 knock-out (hide what is behind) -> wash -> hatch -> pen lines.
+
+Motion. A drawing can carry its own animation, as CSS inside the SVG file, so it moves
+wherever it is shown, by itself, even in a plain <img>:
+
+    with d.part("head", pivot=(34, 40)):     # everything drawn in here turns about the pivot
+        ...
+    d.keyframes("tilt", "0%,60%{transform:none}70%,90%{transform:rotate(-10deg)}")
+    d.animate(".head", "tilt 7s ease-in-out infinite")
+
+What a part is at rest is exactly what is drawn, so with motion switched off (the
+reader's "reduce motion" setting is honoured inside the file) the picture is the still
+one. Keyframes should move parts only with transform and opacity: on the site,
+js/art.js rebuilds each part as a layer of its own and plays the same keyframes on it,
+and those two are the properties a browser can animate without repainting anything.
+
+A big drawing must not animate inside itself (the browser would repaint all of it every
+frame), so anything that moves on the console plate is lifted out into a small file of
+its own, drawn in place with the same strokes: see Drawing.lift.
 """
 
 import math
 import random
+import re
 
 # ---- palette (mirrors css/tokens.css) -------------------------------------------
 PAPER = "#ede0c8"
@@ -212,6 +231,62 @@ class _Wobble(object):
         return a + (b - a) * t
 
 
+def fmt2(x):
+    return ("%.2f" % x).rstrip("0").rstrip(".") or "0"
+
+
+def _style(css):
+    # Motion is decoration: with "reduce motion" on, every part simply stays as drawn.
+    return "<style>%s@media (prefers-reduced-motion:reduce){*{animation:none!important}}</style>" % "".join(css)
+
+
+class _Part(object):
+    def __init__(self, d, name, pivot, squash):
+        self.d, self.name, self.pivot, self.squash = d, name, pivot, squash
+
+    def __enter__(self):
+        # data-p marks where a part begins, for js/art.js, which rebuilds each part as
+        # a layer of its own in the page (that is far cheaper for a browser to animate
+        # than a drawing that moves inside itself). Its value is the pivot, if any.
+        if self.pivot is None:
+            self.d.raw('<g class="%s" data-p="">' % self.name)
+            return self
+        # CSS transforms on an SVG element turn about its parent's origin, so the
+        # origin is moved to the pivot and back again around the animated group.
+        # (transform-origin would be shorter and is less evenly supported.)
+        px, py = self.pivot
+        flat = " scale(%s %s)" % (fmt2(self.squash[0]), fmt2(self.squash[1])) if self.squash else ""
+        mark = ' data-s="%s %s"' % (fmt2(self.squash[0]), fmt2(self.squash[1])) if self.squash else ""
+        self.d.raw('<g data-p="%s %s"%s transform="translate(%s %s)%s"><g class="%s"><g transform="translate(%s %s)">' % (
+            fmt(px), fmt(py), mark, fmt(px), fmt(py), flat, self.name, fmt(-px), fmt(-py)))
+        return self
+
+    def __exit__(self, *exc):
+        self.d.raw("</g>" if self.pivot is None else "</g></g></g>")
+
+
+class _Lift(object):
+    def __init__(self, d, name, box):
+        self.d, self.name, self.box = d, name, box
+
+    def __enter__(self):
+        d = self.d
+        d._flush()
+        layer = d.layers.setdefault(self.name, {"box": self.box, "out": [], "css": []})
+        if self.box is not None:
+            layer["box"] = self.box
+        self.saved = d.out
+        d.out = layer["out"]
+        d._lifts.append(layer)
+        return self
+
+    def __exit__(self, *exc):
+        d = self.d
+        d._flush()
+        d._lifts.pop()
+        d.out = self.saved
+
+
 class Drawing(object):
     def __init__(self, w, h, seed=1, bg=None):
         self.w, self.h = w, h
@@ -219,6 +294,9 @@ class Drawing(object):
         self.out = []
         self._ink = []
         self.bg = bg
+        self.css = []        # this drawing's motion: keyframes and rules for its <style>
+        self.layers = {}     # lifted-out layers: name -> {"box": (x, y, w, h), "out": [], "css": []}
+        self._lifts = []     # the layers currently being drawn into, innermost last
 
     # ---- emission ---------------------------------------------------------------
     def _flush(self):
@@ -234,10 +312,28 @@ class Drawing(object):
         self._flush()
         head = '<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 %s %s" width="%s" height="%s">' % (fmt(self.w), fmt(self.h), fmt(self.w), fmt(self.h))
         body = []
+        if self.css:
+            body.append(_style(self.css))
         if self.bg:
             body.append('<rect width="100%%" height="100%%" fill="%s"/>' % self.bg)
         body.append('<g fill="%s">' % INK)
         body.extend(self.out)
+        body.append("</g>")
+        return head + "\n" + "\n".join(body) + "\n</svg>\n"
+
+    def layer_svg(self, name):
+        """A lifted layer as a file of its own. Its viewBox is its box in this
+        drawing's coordinates, so laid over the drawing at that box it lands exactly
+        where it was drawn."""
+        self._flush()
+        layer = self.layers[name]
+        x, y, w, h = layer["box"]
+        head = '<svg xmlns="http://www.w3.org/2000/svg" viewBox="%s %s %s %s" width="%s" height="%s">' % (fmt(x), fmt(y), fmt(w), fmt(h), fmt(w), fmt(h))
+        body = []
+        if layer["css"]:
+            body.append(_style(layer["css"]))
+        body.append('<g fill="%s">' % INK)
+        body.extend(layer["out"])
         body.append("</g>")
         return head + "\n" + "\n".join(body) + "\n</svg>\n"
 
@@ -246,6 +342,49 @@ class Drawing(object):
 
     def group_close(self):
         self.raw("</g>")
+
+    # ---- motion -------------------------------------------------------------------
+    def part(self, name, pivot=None, squash=None):
+        """`with d.part("head", pivot=(x, y)):` groups what is drawn inside it under
+        that class name, to be animated. Rotation and scaling happen about `pivot`.
+        `squash=(sx, sy)` is for a wheel seen at an angle: draw it as a true circle
+        centred on the pivot and it is flattened AFTER it turns, so it spins in
+        perspective instead of tumbling."""
+        return _Part(self, name, pivot, squash)
+
+    def lift(self, name, box=None):
+        """`with d.lift("cat", box):` sends what is drawn inside it to a layer of its
+        own instead of into this drawing (see layer_svg). The strokes are the same ones,
+        in the same order, from the same random stream: lifting something out changes
+        nothing else in the picture. Lifting the same name again adds to that layer.
+        `box` = (x, y, w, h), with room in it for wherever the thing is going to move."""
+        return _Lift(self, name, box)
+
+    def _css(self):
+        return self._lifts[-1]["css"] if self._lifts else self.css
+
+    def keyframes(self, name, body):
+        self._css().append("@keyframes %s{%s}" % (name, body))
+
+    def style(self, selector, body):
+        """How a part looks when nothing is moving it, where that is not simply 'as
+        drawn' (something that only appears mid-animation rests at opacity 0)."""
+        self._css().append("%s{%s}" % (selector, body))
+
+    def animate(self, selector, spec, delay=0.0, rest=""):
+        """`spec` is a CSS animation shorthand without a delay ("tilt 7s ease-in-out
+        infinite"); `delay` in seconds, negative to start part-way through.
+        Every animation is written so that two custom properties on the root can
+        freeze the whole drawing at a chosen moment (--t: 3.2s; --ps: paused), which
+        is how tools/draw/frames.py makes its contact sheets. Left unset, it runs."""
+        if delay > 0:
+            # A part waiting out a delay shows as drawn and then jumps to wherever its
+            # animation starts. Start it the same distance into an earlier cycle
+            # instead, so it is already under way when the picture appears.
+            cycle = float(re.search(r"([\d.]+)s", spec).group(1)) * (2 if "alternate" in spec else 1)
+            delay -= cycle * math.ceil(delay / cycle)
+        self._css().append("%s{%sanimation:%s;animation-delay:calc(%ss - var(--t,0s));animation-play-state:var(--ps,running)}" % (
+            selector, rest + ";" if rest else "", spec, fmt2(delay)))
 
     # ---- pen ----------------------------------------------------------------------
     def pen(self, pts, w=2.0, amp=0.9, step=11.0, taper=0.42, over=0.0, color=None, wl=34.0, opacity=None):
