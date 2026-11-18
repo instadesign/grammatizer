@@ -72,18 +72,36 @@
       </label>
     </fieldset>
 
-    <div class="key-row">
-      <label class="key-field" for="api-key-input" id="api-key-field">
-        <span class="key-field-label">The key</span>
-        <span class="key-plate">
-          <img class="key-plate-art" src="assets/svg/parts/key.svg" alt="">
-          <input type="password" id="api-key-input" autocomplete="off" spellcheck="false" placeholder="Paste your API key here">
-        </span>
-      </label>
-      <button type="button" class="plaque plaque--large" id="btn-connect">Connect the machine</button>
-    </div>
-    <p class="connect-error" id="connect-error" role="alert" hidden></p>
-    <p class="key-hint" id="api-key-hint">New here? The two engines on the top row are free: follow the link on either, sign in, create a key, then paste it here. The key is kept only for this browser session and sent only to the engine you chose. It is never stored on our server.</p>
+    <p class="engine-prompt">Choose an engine to give it its key.</p>
+
+    <!-- The key goes in here, over the page, once an engine is chosen
+         (engine-connect.js). With four engines the cards fill most windows, and a key
+         field underneath them was out of sight. -->
+    <dialog class="key-dialog" id="key-dialog" aria-labelledby="key-dialog-title">
+      <form method="dialog" class="key-dialog-form" id="key-dialog-form">
+        <button type="submit" value="cancel" class="key-dialog-close" aria-label="Close" formnovalidate>&times;</button>
+        <img class="key-dialog-art" id="key-dialog-art" src="assets/svg/parts/engine-gemini.svg" alt="">
+        <h2 class="key-dialog-title" id="key-dialog-title">Google Gemini</h2>
+        <p class="key-dialog-tag" id="key-dialog-tag">the standard engine</p>
+        <a class="engine-card-link key-dialog-link" id="key-dialog-link" href="https://aistudio.google.com/apikey" target="_blank" rel="noopener noreferrer">Get a free key at aistudio.google.com</a>
+
+        <div class="key-row">
+          <label class="key-field" for="api-key-input" id="api-key-field">
+            <span class="key-field-label">The key</span>
+            <span class="key-plate">
+              <img class="key-plate-art" src="assets/svg/parts/key.svg" alt="">
+              <input type="password" id="api-key-input" autocomplete="off" spellcheck="false" placeholder="Paste your API key here">
+            </span>
+          </label>
+        </div>
+        <p class="connect-error" id="connect-error" role="alert" hidden></p>
+        <div class="key-dialog-actions">
+          <button type="submit" value="cancel" class="key-dialog-cancel" formnovalidate>Choose another engine</button>
+          <button type="button" class="plaque plaque--large" id="btn-connect">Connect the machine</button>
+        </div>
+        <p class="key-hint" id="api-key-hint">Follow the link above, sign in, create a key, then paste it here. The key is kept only for this browser session and sent only to the engine you chose. It is never stored on our server.</p>
+      </form>
+    </dialog>
 
     <p class="connect-inspo">Named for and inspired by Roald Dahl's 1953 short story of the same name, about a machine built to churn out fiction on demand. This app takes that premise semi-literally: a language model standing in for Dahl's fifty thousand cogs and valves. <a href="https://en.wikipedia.org/wiki/The_Great_Automatic_Grammatizator" target="_blank" rel="noopener noreferrer">Read about the story</a> or <a href="https://www.penguin.co.uk/books/192016/the-great-automatic-grammatizator-a-roald-dahl-short-story-by-dahl-roald/9781405911153" target="_blank" rel="noopener noreferrer">get it from the publisher</a>.</p>
   </div>
@@ -338,7 +356,7 @@
         <button type="button" class="crank" id="btn-scramble" aria-label="Scramble the pre-selectors" title="Scramble the pre-selectors">
           <img src="assets/svg/parts/crank.svg" alt="">
         </button>
-        <p class="makers-plate">after <a href="https://en.wikipedia.org/wiki/The_Great_Automatic_Grammatizator" target="_blank" rel="noopener noreferrer">Roald Dahl</a>, 1953<br><span id="build-tag-console">Mark IV, v0.22</span></p>
+        <p class="makers-plate">after <a href="https://en.wikipedia.org/wiki/The_Great_Automatic_Grammatizator" target="_blank" rel="noopener noreferrer">Roald Dahl</a>, 1953<br><span id="build-tag-console">Mark IV, v0.23</span></p>
       </aside>
 
       <!-- ---- centre: status flag, word counter, the paper, its actions ---------------- -->
@@ -475,7 +493,7 @@
     <a href="https://en.wikipedia.org/wiki/The_Great_Automatic_Grammatizator" target="_blank" rel="noopener noreferrer">About the story</a>,
     <a href="https://www.penguin.co.uk/books/192016/the-great-automatic-grammatizator-a-roald-dahl-short-story-by-dahl-roald/9781405911153" target="_blank" rel="noopener noreferrer">read it</a>.
   </p>
-  <p class="build-tag" id="build-tag">Beta v0.22</p>
+  <p class="build-tag" id="build-tag">Beta v0.23</p>
 </footer>
 <div class="grain grain--page" aria-hidden="true"></div>
 
