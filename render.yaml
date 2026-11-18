@@ -24,4 +24,6 @@ services:
       - key: PYTHON_VERSION
         value: 3.11.9
       - key: ALLOWED_ORIGINS
-        value: https://josieandhenry.co.uk
+        # The app's home is instadesign.co.uk/grammatizator/ (moved there 18 Nov 2026);
+        # josieandhenry.co.uk is kept so the old copy goes on working until it is retired.
+        value: https://instadesign.co.uk,https://josieandhenry.co.uk
